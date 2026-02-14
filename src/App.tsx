@@ -3,8 +3,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { SwissShell } from "@/components/SwissShell";
+
 import Index from "./pages/Index";
 import Browse from "./pages/Browse";
 import VideoPlayer from "./pages/VideoPlayer";
@@ -21,32 +23,18 @@ const queryClient = new QueryClient();
 // Get Clerk publishable key from environment
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
+// Temporary Swiss imports during migration
+import SwissDashboard from "./pages/SwissDashboard";
+import SwissVideo from "./pages/SwissVideo";
+import SwissQuiz from "./pages/SwissQuiz";
+
 const App = () => {
-  // If no Clerk key, render without auth (for development)
   if (!clerkPubKey) {
     console.warn("Missing VITE_CLERK_PUBLISHABLE_KEY. Auth features will be disabled.");
+    // Dev mode fallback
     return (
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner position="top-center" />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/browse" element={<Browse />} />
-              <Route path="/video/:id" element={<VideoPlayer />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/upload" element={<Upload />} />
-              <Route path="/creator" element={<Creator />} />
-              <Route path="/admin" element={<Admin />} />
-              <Route path="/sign-in/*" element={<SignIn />} />
-              <Route path="/sign-up/*" element={<SignUp />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </QueryClientProvider>
-    );
+      <div className="p-10 text-center font-mono">Missing Clerk Key</div>
+    )
   }
 
   return (
@@ -57,48 +45,39 @@ const App = () => {
           <Sonner position="top-center" />
           <BrowserRouter>
             <Routes>
-              {/* Public routes */}
-              <Route path="/" element={<Index />} />
-              <Route path="/browse" element={<Browse />} />
-              <Route path="/video/:id" element={<VideoPlayer />} />
+              {/* Auth Routes (Standalone) */}
               <Route path="/sign-in/*" element={<SignIn />} />
               <Route path="/sign-up/*" element={<SignUp />} />
-              
-              {/* Protected routes */}
-              <Route 
-                path="/dashboard" 
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/upload" 
-                element={
-                  <ProtectedRoute>
-                    <Upload />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/creator" 
-                element={
-                  <ProtectedRoute>
-                    <Creator />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/admin" 
-                element={
-                  <ProtectedRoute>
-                    <Admin />
-                  </ProtectedRoute>
-                } 
-              />
-              
-              <Route path="*" element={<NotFound />} />
+
+              {/* Main App Shell */}
+              <Route element={<SwissShell />}>
+
+                {/* Public */}
+                <Route path="/" element={<Index />} />
+                <Route path="/browse" element={<Browse />} />
+                <Route path="/video/:id" element={<VideoPlayer />} />
+
+                {/* Protected */}
+                <Route path="/dashboard" element={
+                  <ProtectedRoute><Dashboard /></ProtectedRoute>
+                } />
+                <Route path="/upload" element={
+                  <ProtectedRoute><Upload /></ProtectedRoute>
+                } />
+                <Route path="/creator" element={
+                  <ProtectedRoute><Creator /></ProtectedRoute>
+                } />
+                <Route path="/admin" element={
+                  <ProtectedRoute><Admin /></ProtectedRoute>
+                } />
+
+                {/* Swiss Prototypes (Keep for reference) */}
+                <Route path="/swiss" element={<SwissDashboard />} />
+                <Route path="/swiss/video" element={<SwissVideo />} />
+                <Route path="/swiss/quiz" element={<SwissQuiz />} />
+
+                <Route path="*" element={<NotFound />} />
+              </Route>
             </Routes>
           </BrowserRouter>
         </TooltipProvider>

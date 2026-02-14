@@ -2,18 +2,20 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@clerk/clerk-react";
-import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { getVideoById, incrementViewCount, getVideoReactionInfo, setUserVideoReaction, getVideoComments, addVideoComment } from "@/services/videos";
 import { getUserByClerkId } from "@/services/users";
 import { markVideoWatched, submitQuiz } from "@/services/progress";
 import {
-  Play, Pause, ArrowLeft, CheckCircle,
+  Play, ArrowLeft, CheckCircle,
   XCircle, Clock, BookOpen, Trophy, Loader2,
-  ThumbsUp, ThumbsDown, MessageSquarePlus
+  ThumbsUp, ThumbsDown, MessageSquare, Info,
+  Share2, MoreVertical, Send, Check
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function VideoPlayer() {
   const { id } = useParams();
@@ -24,7 +26,9 @@ export default function VideoPlayer() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [videoProgress, setVideoProgress] = useState(0);
   const [videoComplete, setVideoComplete] = useState(false);
-  const [quizStarted, setQuizStarted] = useState(false);
+
+  // Quiz State
+  const [activeTab, setActiveTab] = useState("info");
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [answers, setAnswers] = useState<boolean[]>();
@@ -91,18 +95,13 @@ export default function VideoPlayer() {
     onSuccess: (result) => {
       if (result) {
         setPointsEarned(result.pointsEarned);
-        // Invalidate user data to refresh points and progress
         queryClient.invalidateQueries({ queryKey: ['user'] });
-        queryClient.invalidateQueries({ queryKey: ['badges'] });
-        queryClient.invalidateQueries({ queryKey: ['videosCompleted'] });
-        queryClient.invalidateQueries({ queryKey: ['skillProgress'] });
-        queryClient.invalidateQueries({ queryKey: ['quizAccuracy'] });
       }
     }
   });
 
 
-  // Transform database video to display format (real data only)
+  // Transform database video to display format
   const video = videoData?.video ? {
     id: videoData.video.id,
     title: videoData.video.title,
@@ -117,7 +116,6 @@ export default function VideoPlayer() {
       avatar: videoData.video.creator?.avatar_url || "https://i.pravatar.cc/100"
     },
     views: videoData.video.view_count,
-    completions: videoData.video.completion_count,
     quiz: videoData.questions.map((q, i) => ({
       id: q.id,
       question: q.question,
@@ -126,20 +124,12 @@ export default function VideoPlayer() {
     }))
   } : null;
 
-  // Increment view count on mount
+  // Increment view count
   useEffect(() => {
-    if (videoData?.video?.id) {
-      incrementViewCount(videoData.video.id);
-    }
+    if (videoData?.video?.id) incrementViewCount(videoData.video.id);
   }, [videoData?.video?.id]);
 
-  // Track video progress from actual playback
-  const handleLoadedMetadata = () => {
-    const v = videoRef.current;
-    if (!v) return;
-    setVideoProgress(0);
-  };
-
+  // Video Progress Handler
   const handleTimeUpdate = () => {
     const v = videoRef.current;
     if (!v) return;
@@ -149,40 +139,14 @@ export default function VideoPlayer() {
     if (pct >= 99 && !videoComplete) {
       setVideoComplete(true);
       setIsPlaying(false);
-      if (dbUser?.id && id) {
-        markVideoWatched(dbUser.id, id);
-      }
+      setActiveTab("quiz"); // Auto-switch to quiz
+      if (dbUser?.id && id) markVideoWatched(dbUser.id, id);
     }
   };
 
-  // Loading state
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-12 h-12 text-primary animate-spin" />
-          <p className="text-muted-foreground">Loading video...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!video) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-6xl mb-4">🎬</div>
-          <h2 className="text-2xl font-bold mb-2">Video not found</h2>
-          <Button asChild>
-            <Link to="/browse">Browse Videos</Link>
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
+  // Quiz Handlers
   const handleAnswerSelect = async (index: number) => {
-    if (selectedAnswer !== null) return;
+    if (selectedAnswer !== null || !video) return;
     setSelectedAnswer(index);
 
     const isCorrect = index === video.quiz[currentQuestion].correctIndex;
@@ -196,358 +160,264 @@ export default function VideoPlayer() {
         setCurrentQuestion(currentQuestion + 1);
         setSelectedAnswer(null);
       } else {
-        // Quiz complete - submit to database if authenticated
         setQuizComplete(true);
-
         if (isSignedIn && dbUser?.id) {
           try {
-            const result = await submitQuizMutation.mutateAsync(newUserAnswers);
-            if (result) {
-              toast.success(`🎉 Quiz Complete! +${result.pointsEarned} points`);
-            }
-          } catch (error) {
-            // Fall back to local calculation
+            await submitQuizMutation.mutateAsync(newUserAnswers);
+            toast.success(`Quiz Complete!`);
+          } catch (e) {
+            // Fallback points
             const correctCount = newAnswers.filter(Boolean).length;
-            const points = correctCount * 50 + 25;
-            setPointsEarned(points);
-            toast.success(`🎉 Quiz Complete! +${points} points`);
+            setPointsEarned(correctCount * 50 + 25);
           }
-        } else {
-          const correctCount = newAnswers.filter(Boolean).length;
-          const points = correctCount * 50 + 25;
-          setPointsEarned(points);
-          toast.success(`🎉 Quiz Complete! +${points} points`);
         }
       }
-    }, 1500);
+    }, 1000);
   };
+
+
+  if (isLoading || !video) {
+    return (
+      <div className="h-full flex items-center justify-center bg-black">
+        <Loader2 className="w-12 h-12 text-white animate-spin" />
+      </div>
+    );
+  }
 
   const correctCount = (answers || []).filter(Boolean).length;
   const accuracy = quizComplete ? Math.round((correctCount / video.quiz.length) * 100) : 0;
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
+    <div className="flex flex-col lg:flex-row h-[calc(100vh-4rem)] bg-black text-foreground animate-in-fade">
 
-      <main className="pt-16 md:pt-20 pb-24 px-4">
-        <div className="max-w-4xl mx-auto">
-          {/* Back Button */}
-          <Link
-            to="/browse"
-            className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-4"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Browse
+      {/* -------------------------------------------------------------------------- */
+      /*                                VIDEO STAGE                                  */
+      /* -------------------------------------------------------------------------- */}
+      <div className="flex-1 flex flex-col bg-black relative">
+        <div className="flex-none p-4 flex items-center justify-between border-b border-white/10 lg:hidden text-white">
+          <Link to="/browse" className="flex items-center gap-2 text-sm font-bold uppercase"><ArrowLeft className="w-4 h-4" /> Back</Link>
+        </div>
+
+        <div className="flex-1 flex items-center justify-center relative bg-neutral-900 overflow-hidden">
+          {videoData?.video?.video_url && /(youtube\.com|youtu\.be)/i.test(videoData.video.video_url) ? (
+            <iframe
+              title={video.title}
+              src={`https://www.youtube.com/embed/${extractYouTubeId(videoData.video.video_url)}?rel=0&autoplay=1`}
+              className="w-full h-full aspect-video"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          ) : (
+            <video
+              ref={videoRef}
+              src={videoData?.video?.video_url}
+              poster={video.thumbnail}
+              controls
+              className="w-full h-full object-contain"
+              onTimeUpdate={handleTimeUpdate}
+              onPlay={() => setIsPlaying(true)}
+              onPause={() => setIsPlaying(false)}
+            />
+          )}
+        </div>
+
+        {/* Video Controls / Info for Mobile could go here */}
+      </div>
+
+      {/* -------------------------------------------------------------------------- */
+      /*                                SIDEBAR PANEL                                */
+      /* -------------------------------------------------------------------------- */}
+      <div className="w-full lg:w-[400px] border-l border-border bg-background flex flex-col h-full lg:h-auto z-10">
+        <div className="p-4 border-b border-border flex items-center justify-between">
+          <Link to="/browse" className="hidden lg:flex items-center gap-2 text-xs font-bold uppercase text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="w-3 h-3" /> Return
           </Link>
-
-          {/* Video Player */}
-          <div className="relative aspect-video rounded-2xl overflow-hidden bg-foreground/10 mb-6 shadow-lg">
-            {videoData?.video?.video_url && /(youtube\.com|youtu\.be)/i.test(videoData.video.video_url) ? (
-              <iframe
-                title={video.title}
-                src={`https://www.youtube.com/embed/${extractYouTubeId(videoData.video.video_url)}?rel=0`}
-                className="w-full h-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            ) : (
-              <video
-                ref={videoRef}
-                src={videoData?.video?.video_url}
-                poster={video.thumbnail}
-                controls
-                className="w-full h-full object-contain bg-black"
-                onLoadedMetadata={handleLoadedMetadata}
-                onTimeUpdate={handleTimeUpdate}
-                onPlay={() => setIsPlaying(true)}
-                onPause={() => setIsPlaying(false)}
-              />
-            )}
-
-            {/* Progress Bar */}
-            <div className="absolute bottom-0 left-0 right-0 h-1 bg-foreground/20">
-              <div
-                className="h-full bg-primary transition-all duration-200"
-                style={{ width: `${videoProgress}%` }}
-              />
-            </div>
-
-            {/* Duration Badge */}
-            <div className="absolute top-4 right-4 flex items-center gap-1 px-3 py-1.5 rounded-lg bg-foreground/80 text-background text-sm font-medium">
-              <Clock className="w-4 h-4" />
-              {video.duration}
-            </div>
-          </div>
-
-          {/* Video Info */}
-          <div className="mb-8">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-sm font-medium">
-                {video.categoryEmoji} {video.categoryName || video.category}
-              </span>
-              <span className="text-muted-foreground text-sm">•</span>
-              <span className="text-muted-foreground text-sm">{video.views.toLocaleString()} views</span>
-            </div>
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2 break-words">
-              {video.title}
-            </h1>
-            <p className="text-muted-foreground break-words whitespace-pre-wrap">{video.description}</p>
-
-            {/* Reactions */}
-            <div className="flex items-center gap-3 mt-4">
-              <button
-                type="button"
-                className={cn("flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-colors", reactionInfo.userReaction === 'like' ? "border-primary bg-primary/10 text-primary" : "border-border hover:bg-muted")}
-                onClick={() => reactionMutation.mutate(reactionInfo.userReaction === 'like' ? null : 'like')}
-                disabled={!isSignedIn}
-              >
-                <ThumbsUp className="w-4 h-4" />
-                <span className="text-sm">{reactionInfo.likes}</span>
-              </button>
-              <button
-                type="button"
-                className={cn("flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-colors", reactionInfo.userReaction === 'dislike' ? "border-destructive bg-destructive/10 text-destructive" : "border-border hover:bg-muted")}
-                onClick={() => reactionMutation.mutate(reactionInfo.userReaction === 'dislike' ? null : 'dislike')}
-                disabled={!isSignedIn}
-              >
-                <ThumbsDown className="w-4 h-4" />
-                <span className="text-sm">{reactionInfo.dislikes}</span>
-              </button>
-            </div>
-
-            {/* Creator */}
-            <div className="flex items-center gap-3 mt-4 pt-4 border-t border-border">
-              <img
-                src={video.creator.avatar}
-                alt={video.creator.name}
-                className="w-10 h-10 rounded-full"
-              />
-              <div>
-                <p className="font-medium text-foreground">{video.creator.name}</p>
-                <p className="text-sm text-muted-foreground">Creator</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Quiz Section */}
-          {!quizStarted && videoComplete && !quizComplete && video.quiz && video.quiz.length > 0 && (
-            <div className="bg-card rounded-2xl p-6 shadow-md border border-border/50 text-center animate-slide-up">
-              <div className="text-5xl mb-4">🧠</div>
-              <h2 className="text-2xl font-bold text-foreground mb-2">Quiz Time!</h2>
-              <p className="text-muted-foreground mb-6">
-                Answer {video.quiz.length} question{video.quiz.length > 1 ? "s" : ""} to complete this video and earn points
-              </p>
-              <Button
-                variant="hero"
-                size="lg"
-                onClick={() => setQuizStarted(true)}
-              >
-                <BookOpen className="w-5 h-5" />
-                Start Quiz
-              </Button>
-            </div>
-          )}
-
-          {/* Quiz Questions */}
-          {quizStarted && !quizComplete && video.quiz && video.quiz.length > 0 && (
-            <div className="bg-card rounded-2xl p-6 shadow-md border border-border/50 animate-fade-in">
-              {/* Progress */}
-              <div className="flex items-center justify-between mb-6">
-                <span className="text-sm text-muted-foreground">
-                  Question {currentQuestion + 1} of {video.quiz.length}
-                </span>
-                <div className="flex gap-1">
-                  {video.quiz.map((_, i) => (
-                    <div
-                      key={i}
-                      className={cn(
-                        "w-8 h-2 rounded-full transition-colors",
-                        i < currentQuestion
-                          ? answers && answers[i]
-                            ? "bg-success"
-                            : "bg-destructive"
-                          : i === currentQuestion
-                            ? "bg-primary"
-                            : "bg-muted"
-                      )}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* Question */}
-              <h3 className="text-xl font-bold text-foreground mb-6">
-                {video.quiz[currentQuestion].question}
-              </h3>
-
-              {/* Options */}
-              <div className="space-y-3">
-                {video.quiz[currentQuestion].options.map((option, index) => {
-                  const isSelected = selectedAnswer === index;
-                  const isCorrect = index === video.quiz[currentQuestion].correctIndex;
-                  const showResult = selectedAnswer !== null;
-
-                  return (
-                    <button
-                      key={index}
-                      onClick={() => handleAnswerSelect(index)}
-                      disabled={selectedAnswer !== null}
-                      className={cn(
-                        "w-full p-4 rounded-xl text-left font-medium transition-all duration-200 border-2",
-                        showResult
-                          ? isCorrect
-                            ? "bg-success/10 border-success text-success"
-                            : isSelected
-                              ? "bg-destructive/10 border-destructive text-destructive"
-                              : "bg-muted/50 border-transparent text-muted-foreground"
-                          : "bg-muted/50 border-transparent hover:bg-primary/10 hover:border-primary text-foreground"
-                      )}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span>{option}</span>
-                        {showResult && isCorrect && (
-                          <CheckCircle className="w-5 h-5 text-success" />
-                        )}
-                        {showResult && isSelected && !isCorrect && (
-                          <XCircle className="w-5 h-5 text-destructive" />
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Quiz Complete */}
-          {quizComplete && (
-            <div className="bg-card rounded-2xl p-8 shadow-md border border-border/50 text-center animate-pop">
-              <div className="text-6xl mb-4 animate-bounce-gentle">🎉</div>
-              <h2 className="text-2xl font-bold text-foreground mb-2">
-                Quiz Complete!
-              </h2>
-              <p className="text-muted-foreground mb-6">
-                You got {correctCount} out of {video.quiz?.length || 0} correct
-              </p>
-
-              {/* Stats */}
-              <div className="flex justify-center gap-8 mb-8">
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-primary">{accuracy}%</div>
-                  <div className="text-sm text-muted-foreground">Accuracy</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-accent">+{pointsEarned}</div>
-                  <div className="text-sm text-muted-foreground">Points</div>
-                </div>
-              </div>
-
-              <div className="flex gap-4 justify-center">
-                <Button asChild variant="secondary" size="lg">
-                  <Link to="/browse">
-                    Browse More
-                  </Link>
-                </Button>
-                <Button asChild variant="hero" size="lg">
-                  <Link to="/dashboard">
-                    <Trophy className="w-5 h-5" />
-                    View Progress
-                  </Link>
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* Locked Quiz Message */}
-          {!videoComplete && !quizStarted && video.quiz && video.quiz.length > 0 && (
-            <div className="bg-muted/50 rounded-2xl p-6 border border-border/50 text-center">
-              <div className="text-4xl mb-3 opacity-50">🔒</div>
-              <h3 className="font-bold text-foreground mb-1">Quiz Locked</h3>
-              <p className="text-sm text-muted-foreground">
-                Complete the video to unlock the quiz
-              </p>
-            </div>
-          )}
-
-          {/* No Quiz Message */}
-          {videoComplete && (!video.quiz || video.quiz.length === 0) && (
-            <div className="bg-card rounded-2xl p-6 shadow-md border border-border/50 text-center">
-              <div className="text-5xl mb-4">✅</div>
-              <h2 className="text-2xl font-bold text-foreground mb-2">Video Complete!</h2>
-              <p className="text-muted-foreground mb-6">
-                Great job watching this video!
-              </p>
-              <div className="flex gap-4 justify-center">
-                <Button asChild variant="secondary" size="lg">
-                  <Link to="/browse">Browse More</Link>
-                </Button>
-                <Button asChild variant="hero" size="lg">
-                  <Link to="/dashboard">
-                    <Trophy className="w-5 h-5" />
-                    View Progress
-                  </Link>
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* Comments */}
-          <div className="bg-card rounded-2xl p-6 shadow-sm border border-border/50 mt-8">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-foreground">Comments</h3>
-              <span className="text-sm text-muted-foreground">{comments.length}</span>
-            </div>
-
-            {isSignedIn ? (
-              <div className="flex items-center gap-2 mb-4">
-                <input
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="Add a comment"
-                  className="flex-1 px-3 py-2 rounded-xl border border-border/60 bg-background"
-                />
-                <Button
-                  onClick={() => newComment.trim() && addCommentMutation.mutate(newComment)}
-                  disabled={addCommentMutation.isPending || !newComment.trim()}
-                >
-                  <MessageSquarePlus className="w-4 h-4" />
-                  Post
-                </Button>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground mb-4">Sign in to comment.</p>
-            )}
-
-            <div className="space-y-4">
-              {comments.length > 0 ? comments.map((c) => (
-                <div key={c.id} className="flex items-start gap-3">
-                  <img src={c.user?.avatar_url || 'https://i.pravatar.cc/60'} alt={c.user?.name || 'User'} className="w-8 h-8 rounded-full" />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-foreground">{c.user?.name || 'User'}</span>
-                      <span className="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleString()}</span>
-                    </div>
-                    <p className="text-sm text-foreground break-words whitespace-pre-wrap">{c.content}</p>
-                  </div>
-                </div>
-              )) : (
-                <p className="text-sm text-muted-foreground">No comments yet. Be the first to share your thoughts!</p>
-              )}
-            </div>
+          <div className="flex gap-2">
+            <Button variant="ghost" size="icon" className="h-8 w-8"><Share2 className="w-4 h-4" /></Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="w-4 h-4" /></Button>
           </div>
         </div>
-      </main>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+          <TabsList className="w-full grid grid-cols-3 rounded-none border-b border-border p-0 h-12 bg-muted/20">
+            <TabsTrigger value="info" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-background h-full text-xs font-bold uppercase tracking-wider">Info</TabsTrigger>
+            <TabsTrigger value="quiz" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-background h-full text-xs font-bold uppercase tracking-wider flex gap-2 items-center">
+              Quiz
+              {videoComplete && !quizComplete && <div className="w-2 h-2 bg-accent rounded-full animate-pulse" />}
+            </TabsTrigger>
+            <TabsTrigger value="chat" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-background h-full text-xs font-bold uppercase tracking-wider">Chat</TabsTrigger>
+          </TabsList>
+
+          <ScrollArea className="flex-1">
+            {/* INFO TAB */}
+            <TabsContent value="info" className="p-6 m-0 space-y-6">
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-widest border border-primary/20">
+                    {video.categoryEmoji} {video.categoryName}
+                  </span>
+                  <span className="text-[10px] font-mono text-muted-foreground">
+                    {video.views.toLocaleString()} VIEWS
+                  </span>
+                </div>
+                <h1 className="text-2xl font-black uppercase leading-tight mb-4 tracking-tight">{video.title}</h1>
+                <p className="text-sm text-muted-foreground leading-relaxed font-mono">{video.description}</p>
+              </div>
+
+              <div className="flex items-center justify-between p-4 bg-muted/30 rounded-none border border-border">
+                <div className="flex items-center gap-3">
+                  <img src={video.creator.avatar} className="w-10 h-10 border border-border" />
+                  <div>
+                    <div className="text-sm font-bold uppercase">{video.creator.name}</div>
+                    <div className="text-[10px] text-muted-foreground font-mono">AUTHOR</div>
+                  </div>
+                </div>
+                <Button size="sm" variant="outline" className="h-8 text-[10px] uppercase font-bold rounded-none">Follow</Button>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className={cn("flex-1 h-10 rounded-none uppercase font-bold text-xs gap-2", reactionInfo.userReaction === 'like' && "bg-primary/10 border-primary text-primary")}
+                  onClick={() => reactionMutation.mutate(reactionInfo.userReaction === 'like' ? null : 'like')}
+                >
+                  <ThumbsUp className="w-4 h-4" /> {reactionInfo.likes}
+                </Button>
+                <Button
+                  variant="outline"
+                  className={cn("flex-1 h-10 rounded-none uppercase font-bold text-xs gap-2", reactionInfo.userReaction === 'dislike' && "bg-destructive/10 border-destructive text-destructive")}
+                  onClick={() => reactionMutation.mutate(reactionInfo.userReaction === 'dislike' ? null : 'dislike')}
+                >
+                  <ThumbsDown className="w-4 h-4" />
+                </Button>
+              </div>
+            </TabsContent>
+
+            {/* QUIZ TAB */}
+            <TabsContent value="quiz" className="p-6 m-0 h-full">
+              {!videoComplete ? (
+                <div className="flex flex-col items-center justify-center h-[400px] text-center p-4 opacity-50">
+                  <Loader2 className="w-8 h-8 mb-4 animate-spin" />
+                  <h3 className="font-bold uppercase">Locked</h3>
+                  <p className="text-xs font-mono mt-2">WATCH VIDEO TO UNLOCK</p>
+                </div>
+              ) : quizComplete ? (
+                <div className="flex flex-col items-center justify-center py-10 text-center animate-in-fade">
+                  <div className="w-20 h-20 bg-accent/10 border border-accent rounded-full flex items-center justify-center mb-6">
+                    <Trophy className="w-10 h-10 text-accent" />
+                  </div>
+                  <h2 className="text-2xl font-black uppercase mb-2">Quiz Complete</h2>
+                  <div className="text-4xl font-mono font-bold mb-6">{accuracy}% <span className="text-sm text-muted-foreground font-sans font-normal">ACCURACY</span></div>
+                  <div className="grid grid-cols-2 gap-4 w-full">
+                    <div className="p-4 bg-muted/30 border border-border">
+                      <div className="text-2xl font-bold">+{pointsEarned}</div>
+                      <div className="text-[10px] font-mono text-muted-foreground">XP EARNED</div>
+                    </div>
+                    <div className="p-4 bg-muted/30 border border-border">
+                      <div className="text-2xl font-bold">{correctCount}/{video.quiz?.length}</div>
+                      <div className="text-[10px] font-mono text-muted-foreground">CORRECT</div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-6 animate-in-slide-right">
+                  <div className="flex items-center justify-between text-[10px] font-mono font-bold text-muted-foreground uppercase tracking-wider">
+                    <span>Question {currentQuestion + 1} / {video.quiz?.length}</span>
+                    <span>Test Video Knowledge</span>
+                  </div>
+
+                  <div className="h-1 w-full bg-muted overflow-hidden">
+                    <div className="h-full bg-primary transition-all duration-300" style={{ width: `${((currentQuestion) / (video.quiz?.length || 1)) * 100}%` }} />
+                  </div>
+
+                  <h3 className="text-lg font-bold leading-snug">{video.quiz[currentQuestion].question}</h3>
+
+                  <div className="space-y-2">
+                    {video.quiz[currentQuestion].options.map((option, idx) => {
+                      const isSelected = selectedAnswer === idx;
+                      const isCorrect = idx === video.quiz[currentQuestion].correctIndex;
+                      const showResult = selectedAnswer !== null;
+
+                      return (
+                        <button
+                          key={idx}
+                          onClick={() => handleAnswerSelect(idx)}
+                          disabled={selectedAnswer !== null}
+                          className={cn(
+                            "w-full text-left p-4 border border-border text-sm font-medium transition-all hover:bg-muted/50 relative overflow-hidden",
+                            showResult && isCorrect && "border-green-500 bg-green-500/10 text-green-500",
+                            showResult && isSelected && !isCorrect && "border-red-500 bg-red-500/10 text-red-500"
+                          )}
+                        >
+                          <div className="flex items-center justify-between relative z-10">
+                            <span>{option}</span>
+                            {showResult && isCorrect && <Check className="w-4 h-4" />}
+                            {showResult && isSelected && !isCorrect && <XCircle className="w-4 h-4" />}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </TabsContent>
+
+            {/* CHAT TAB */}
+            <TabsContent value="chat" className="p-0 m-0 h-full flex flex-col">
+              <div className="flex-1 p-4 space-y-4">
+                {comments.length === 0 ? (
+                  <div className="text-center py-10 opacity-50">
+                    <MessageSquare className="w-8 h-8 mx-auto mb-2" />
+                    <p className="text-xs font-mono uppercase">No Messages</p>
+                  </div>
+                ) : (
+                  comments.map((c) => (
+                    <div key={c.id} className="flex gap-3 text-sm">
+                      <img src={c.user.avatar_url} className="w-8 h-8 bg-muted" />
+                      <div>
+                        <div className="flex items-baseline gap-2">
+                          <span className="font-bold uppercase text-xs">{c.user.name}</span>
+                          <span className="text-[10px] text-muted-foreground font-mono">{new Date(c.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                        <p className="text-muted-foreground mt-0.5">{c.content}</p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Chat Input */}
+              <div className="p-4 border-t border-border bg-background">
+                <div className="flex gap-2">
+                  <input
+                    className="flex-1 bg-muted/50 border border-border px-3 py-2 text-sm focus:outline-none focus:border-foreground transition-colors placeholder:uppercase placeholder:text-[10px]"
+                    placeholder="Enter message..."
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && newComment.trim() && addCommentMutation.mutate(newComment)}
+                  />
+                  <Button
+                    size="icon"
+                    onClick={() => newComment.trim() && addCommentMutation.mutate(newComment)}
+                    disabled={!newComment.trim() || addCommentMutation.isPending}
+                    className="rounded-none w-10 h-10"
+                  >
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </TabsContent>
+          </ScrollArea>
+        </Tabs>
+      </div>
     </div>
   );
 }
 
-// Helper: extract YouTube video ID from URL
 function extractYouTubeId(url: string): string {
   try {
     const u = new URL(url);
-    if (u.hostname.includes('youtu.be')) {
-      return u.pathname.slice(1);
-    }
+    if (u.hostname.includes('youtu.be')) return u.pathname.slice(1);
     const v = u.searchParams.get('v');
     if (v) return v;
     const parts = u.pathname.split('/');
