@@ -52,7 +52,7 @@ export function SwissShell() {
     }, [isLoaded, clerkUser]);
 
     const navItems = [
-        { label: "Feed", icon: Zap, path: "/" },
+        { label: "Feed", icon: Zap, path: "/feed" },
         { label: "Archive", icon: Compass, path: "/browse" },
         { label: "Studio", icon: Plus, path: "/upload" },
         { label: "Cockpit", icon: LayoutGrid, path: "/dashboard" },

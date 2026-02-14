@@ -61,6 +61,22 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        swiss: {
+          black: "#000000",
+          white: "#FFFFFF",
+          gray: "#F5F5F5",
+          darkGray: "#1A1A1A",
+          blue: "#002FA7",
+          vibrantBlue: "#3366FF",
+          darkBg: "#0D0D0D",
+        },
+      },
+      boxShadow: {
+        hard: "4px 4px 0px 0px rgba(0,0,0,1)",
+        "hard-sm": "2px 2px 0px 0px rgba(0,0,0,1)",
+        "hard-lg": "8px 8px 0px 0px rgba(0,0,0,1)",
+        "hard-white": "4px 4px 0px 0px rgba(255,255,255,1)",
+        "hard-sm-white": "2px 2px 0px 0px rgba(255,255,255,1)",
       },
       borderRadius: {
         lg: "var(--radius)",

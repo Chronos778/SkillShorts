@@ -8,6 +8,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { SwissShell } from "@/components/SwissShell";
 
 import Index from "./pages/Index";
+import LandingPage from "./pages/LandingPage";
 import Browse from "./pages/Browse";
 import VideoPlayer from "./pages/VideoPlayer";
 import Dashboard from "./pages/Dashboard";
@@ -50,10 +51,12 @@ const App = () => {
               <Route path="/sign-up/*" element={<SignUp />} />
 
               {/* Main App Shell */}
+              <Route path="/" element={<LandingPage />} />
+              
               <Route element={<SwissShell />}>
 
                 {/* Public */}
-                <Route path="/" element={<Index />} />
+                <Route path="/feed" element={<Index />} />
                 <Route path="/browse" element={<Browse />} />
                 <Route path="/video/:id" element={<VideoPlayer />} />
 
