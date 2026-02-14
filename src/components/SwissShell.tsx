@@ -9,10 +9,9 @@ import {
     Menu,
     X,
     CreditCard,
-    User,
     Zap
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, Outlet } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -25,6 +24,20 @@ export function SwissShell() {
     const { user: clerkUser, isLoaded } = useUser();
     const [dbUser, setDbUser] = useState<DbUser | null>(null);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const searchInputRef = useRef<HTMLInputElement>(null);
+
+    // Keyboard shortcut for search
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                searchInputRef.current?.focus();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
 
     // Sync user effect
     useEffect(() => {
@@ -75,10 +88,10 @@ export function SwissShell() {
                                     key={item.path}
                                     to={item.path}
                                     className={cn(
-                                        "flex items-center gap-3 px-3 py-2 text-sm font-bold uppercase tracking-wide transition-all duration-200 border border-transparent hover:border-border hover:bg-sidebar-accent",
+                                        "flex items-center gap-3 px-3 py-2 text-sm font-bold uppercase tracking-wide transition-all duration-200 border border-transparent hover:border-border",
                                         isActive
-                                            ? "bg-black text-white dark:bg-white dark:text-black border-black dark:border-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:shadow-[2px_2px_0px_0px_rgba(255,255,255,1)] translate-x-1"
-                                            : "text-muted-foreground"
+                                            ? "bg-black text-white dark:bg-white dark:text-black border-black dark:border-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:shadow-[2px_2px_0px_0px_rgba(255,255,255,1)] translate-x-1 active-shine"
+                                            : "text-muted-foreground hover:bg-sidebar-accent"
                                     )}
                                 >
                                     <item.icon className="w-4 h-4" />
@@ -174,13 +187,15 @@ export function SwissShell() {
                         <div className="relative group">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
                             <input
+                                ref={searchInputRef}
                                 placeholder="SEARCH DATABASE..."
-                                className="h-9 w-64 bg-muted/50 border border-transparent focus:border-foreground pl-9 pr-4 text-xs font-mono placeholder:text-muted-foreground outline-none transition-all uppercase"
+                                className="h-9 w-64 bg-muted/50 border border-transparent focus:border-foreground pl-9 pr-12 text-xs font-mono placeholder:text-muted-foreground outline-none transition-all uppercase"
                             />
+                            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 px-1.5 py-0.5 rounded border border-border bg-background text-[10px] font-mono text-muted-foreground pointer-events-none group-focus-within:border-foreground group-focus-within:text-foreground">
+                                <span className="text-[8px]">⌘</span>K
+                            </div>
                         </div>
-                        <button className="h-9 w-9 flex items-center justify-center border border-border hover:bg-accent hover:text-accent-foreground transition-colors">
-                            <User className="w-4 h-4" />
-                        </button>
+
                     </div>
                 </header>
 
