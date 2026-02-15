@@ -520,3 +520,58 @@ export async function updateVideo(videoId: string, updates: Partial<Video>): Pro
   }
   return true;
 }
+
+/**
+ * Update quiz questions for a video
+ * Deletes existing questions and inserts new ones
+ */
+export async function updateQuizQuestions(
+  videoId: string, 
+  questions: Array<{
+    question: string;
+    options: string[];
+    correct_answer: number;
+  }>
+): Promise<boolean> {
+  // Validate quiz questions
+  const { validateQuizQuestions } = await import('./validation');
+  const validation = validateQuizQuestions(questions);
+  
+  if (!validation.isValid) {
+    const { formatValidationErrors } = await import('./validation');
+    const errorMessage = formatValidationErrors(validation.errors);
+    console.error('Quiz validation failed:', errorMessage);
+    throw new Error(`Quiz validation failed:\n${errorMessage}`);
+  }
+
+  // Delete existing quiz questions
+  const { error: deleteError } = await supabase
+    .from('quiz_questions')
+    .delete()
+    .eq('video_id', videoId);
+
+  if (deleteError) {
+    console.error('Error deleting quiz questions:', deleteError);
+    throw new Error('Failed to delete existing quiz questions');
+  }
+
+  // Insert new quiz questions
+  const questionsToInsert = questions.map((q, index) => ({
+    video_id: videoId,
+    question: q.question,
+    options: q.options,
+    correct_answer: q.correct_answer,
+    order_index: index,
+  }));
+
+  const { error: insertError } = await supabase
+    .from('quiz_questions')
+    .insert(questionsToInsert);
+
+  if (insertError) {
+    console.error('Error inserting quiz questions:', insertError);
+    throw new Error('Failed to insert new quiz questions');
+  }
+
+  return true;
+}
