@@ -1,16 +1,30 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Loader2, Play } from "lucide-react";
 import { getCategories, getApprovedVideos, getVideosByCategory, searchVideos } from "@/services/videos";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import type { Video, Category } from "@/types";
 
 export default function Browse() {
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialQuery = searchParams.get("q") || "";
+  const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  // Sync URL with Search Query
+  useEffect(() => {
+      const timeoutId = setTimeout(() => {
+          if (searchQuery) {
+              setSearchParams({ q: searchQuery });
+          } else {
+              setSearchParams({});
+          }
+      }, 300); // Debounce URL updates
+      return () => clearTimeout(timeoutId);
+  }, [searchQuery, setSearchParams]);
 
   const { data: dbCategories = [] } = useQuery({
     queryKey: ['categories'],

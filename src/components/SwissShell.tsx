@@ -12,7 +12,7 @@ import {
     Zap
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
-import { Link, useLocation, Outlet } from "react-router-dom";
+import { Link, useLocation, Outlet, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -22,6 +22,7 @@ import { Logo } from "@/components/Logo";
 
 export function SwissShell() {
     const location = useLocation();
+    const navigate = useNavigate();
     const { user: clerkUser, isLoaded } = useUser();
     const [dbUser, setDbUser] = useState<DbUser | null>(null);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -157,6 +158,21 @@ export function SwissShell() {
 
             {mobileMenuOpen && (
                 <div className="md:hidden fixed inset-0 z-40 bg-background pt-20 px-6 pb-6 flex flex-col gap-4 animate-in slide-in-from-top-10">
+                    {/* Mobile Search */}
+                    <div className="relative mb-4">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <input
+                            placeholder="SEARCH..."
+                            className="w-full h-10 bg-muted/50 border border-border pl-10 pr-4 font-mono text-sm uppercase focus:bg-background focus:border-foreground outline-none transition-all"
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    navigate(`/browse?q=${e.currentTarget.value}`);
+                                    setMobileMenuOpen(false);
+                                }
+                            }}
+                        />
+                    </div>
+
                     {navItems.map((item) => (
                         <Link
                             key={item.path}
@@ -199,6 +215,11 @@ export function SwissShell() {
                                 ref={searchInputRef}
                                 placeholder="SEARCH DATABASE..."
                                 className="h-9 w-64 bg-muted/50 border border-transparent focus:border-foreground pl-9 pr-12 text-xs font-mono placeholder:text-muted-foreground outline-none transition-all uppercase"
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        navigate(`/browse?q=${e.currentTarget.value}`);
+                                    }
+                                }}
                             />
                             <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 px-1.5 py-0.5 rounded border border-border bg-background text-[10px] font-mono text-muted-foreground pointer-events-none group-focus-within:border-foreground group-focus-within:text-foreground">
                                 <span className="text-[8px]">⌘</span>K

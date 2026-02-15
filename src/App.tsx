@@ -16,6 +16,7 @@ import Upload from "./pages/Upload";
 import Creator from "./pages/Creator";
 import Admin from "./pages/Admin";
 import SignIn from "./pages/SignIn";
+import PublicProfile from "./pages/PublicProfile";
 import SignUp from "./pages/SignUp";
 import NotFound from "./pages/NotFound";
 
@@ -58,7 +59,7 @@ const App = () => {
                 {/* Public */}
                 <Route path="/feed" element={<Index />} />
                 <Route path="/browse" element={<Browse />} />
-                <Route path="/profile/:id" element={<Dashboard />} />
+                <Route path="/profile/:id" element={<PublicProfile />} />
                 <Route path="/video/:id" element={<VideoPlayer />} />
 
                 {/* Protected */}
