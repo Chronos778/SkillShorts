@@ -1,25 +1,30 @@
 import { useUser } from "@clerk/clerk-react";
-import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link, useParams } from "react-router-dom";
 import {
   ArrowRight, BookOpen, List, Play,
   Target,
-  Flame, Hexagon, Medal, Trophy, Star
+  Flame, Hexagon, Medal, Trophy, Star, UserPlus, UserCheck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { syncUserFromClerk } from "@/services/users";
+import { useToast } from "@/components/ui/use-toast";
+import { syncUserFromClerk, getUserById } from "@/services/users";
 import { getUserBadges } from "@/services/badges";
-import { getSkillProgress, getCompletedVideosCount, getAverageQuizAccuracy } from "@/services/progress";
+import { getSkillProgress, getCompletedVideosCount, getAverageQuizAccuracy, getLastActiveProgress } from "@/services/progress";
 import { getVideosByCreator } from "@/services/videos";
+import { followUser, unfollowUser, isFollowing, getFollowCounts } from "@/services/social";
 import { BADGE_INFO, UserLevel, LEVEL_THRESHOLDS } from "@/types";
 
 export default function Dashboard() {
   const { user: clerkUser, isLoaded } = useUser();
+  const { id: paramUserId } = useParams<{ id: string }>();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  // Sync and get user from database
-  const { data: dbUser } = useQuery({
-    queryKey: ['user', clerkUser?.id],
+  // 1. Resolve Current User (Me)
+  const { data: currentUser } = useQuery({
+    queryKey: ['current-user', clerkUser?.id],
     queryFn: async () => {
       if (!clerkUser) return null;
       return syncUserFromClerk(
@@ -32,37 +37,95 @@ export default function Dashboard() {
     enabled: isLoaded && !!clerkUser?.id,
   });
 
+  // 2. Determine View Target (Me or Other)
+  const targetUserId = paramUserId || currentUser?.id;
+  const isOwnProfile = currentUser?.id === targetUserId;
+
+  // 3. Fetch Target User Profile
+  const { data: profileUser } = useQuery({
+    queryKey: ['user-profile', targetUserId],
+    queryFn: () => targetUserId ? getUserById(targetUserId) : null,
+    enabled: !!targetUserId,
+  });
+
+  // 4. Follow Status & Counts
+  const { data: isFollowed } = useQuery({
+    queryKey: ['is-following', currentUser?.id, targetUserId],
+    queryFn: () => isFollowing(currentUser!.id, targetUserId!),
+    enabled: !!currentUser?.id && !!targetUserId && !isOwnProfile,
+  });
+
+  const { data: followCounts } = useQuery({
+    queryKey: ['follow-counts', targetUserId],
+    queryFn: () => targetUserId ? getFollowCounts(targetUserId) : { followers: 0, following: 0 },
+    enabled: !!targetUserId
+  });
+
+
+  // 5. Follow Mutation
+  const followMutation = useMutation({
+    mutationFn: async () => {
+      if (!currentUser || !targetUserId) return;
+      if (isFollowed) {
+        await unfollowUser(currentUser.id, targetUserId);
+      } else {
+        await followUser(currentUser.id, targetUserId);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['is-following', currentUser?.id, targetUserId] });
+      queryClient.invalidateQueries({ queryKey: ['follow-counts', targetUserId] });
+      toast({ title: isFollowed ? "Unsubscribed" : "Subscribed" });
+    },
+    onError: () => {
+      toast({ title: "Action failed", variant: "destructive" });
+    }
+  });
+
+
+  // --- Existing Stats Queries (using targetUserId) ---
+
   const { data: skillProgress = [] } = useQuery({
-    queryKey: ['skillProgress', dbUser?.id],
-    queryFn: () => getSkillProgress(dbUser!.id),
-    enabled: !!dbUser?.id,
+    queryKey: ['skillProgress', targetUserId],
+    queryFn: () => getSkillProgress(targetUserId!),
+    enabled: !!targetUserId,
+  });
+
+  const { data: lastActive } = useQuery({
+    queryKey: ['lastActive', targetUserId],
+    queryFn: () => getLastActiveProgress(targetUserId!),
+    enabled: !!targetUserId,
   });
 
   const { data: videosCompleted = 0 } = useQuery({
-    queryKey: ['videosCompleted', dbUser?.id],
-    queryFn: () => getCompletedVideosCount(dbUser!.id),
-    enabled: !!dbUser?.id,
+    queryKey: ['videosCompleted', targetUserId],
+    queryFn: () => getCompletedVideosCount(targetUserId!),
+    enabled: !!targetUserId,
   });
 
   const { data: quizAccuracy = 0 } = useQuery({
-    queryKey: ['quizAccuracy', dbUser?.id],
-    queryFn: () => getAverageQuizAccuracy(dbUser!.id),
-    enabled: !!dbUser?.id,
+    queryKey: ['quizAccuracy', targetUserId],
+    queryFn: () => getAverageQuizAccuracy(targetUserId!),
+    enabled: !!targetUserId,
   });
 
   const { data: badges = [] } = useQuery({
-    queryKey: ['badges', dbUser?.id],
-    queryFn: () => getUserBadges(dbUser!.id),
-    enabled: !!dbUser?.id,
+    queryKey: ['badges', targetUserId],
+    queryFn: () => getUserBadges(targetUserId!),
+    enabled: !!targetUserId,
   });
 
   const { data: myUploads = [] } = useQuery({
-    queryKey: ['myUploads', dbUser?.id],
-    queryFn: () => getVideosByCreator(dbUser!.id),
-    enabled: !!dbUser?.id,
+    queryKey: ['myUploads', targetUserId],
+    queryFn: () => getVideosByCreator(targetUserId!),
+    enabled: !!targetUserId,
   });
 
-  const activeCourse = skillProgress.length > 0 ? skillProgress[0] : null;
+  // Determine active course based on last watched video, fallback to first skill
+  const activeCategoryId = lastActive?.video?.category?.id;
+  const activeCourse = activeCategoryId
+    ? skillProgress.find(s => s.category.id === activeCategoryId)
+    : (skillProgress.length > 0 ? skillProgress[0] : null);
 
   // Calculate Level Progress
   const getNextLevelThreshold = (level: UserLevel) => {
@@ -72,9 +135,11 @@ export default function Dashboard() {
     return LEVEL_THRESHOLDS.expert * 2;
   };
 
-  const currentPoints = dbUser?.points || 0;
-  const nextThreshold = getNextLevelThreshold(dbUser?.level || 'beginner');
+  const currentPoints = profileUser?.points || 0;
+  const nextThreshold = getNextLevelThreshold(profileUser?.level || 'beginner');
   const progressPercent = Math.min(100, Math.round((currentPoints / nextThreshold) * 100));
+
+  if (!profileUser && isLoaded) return <div className="p-10 font-mono text-center">INITIALIZING LINK...</div>;
 
   return (
     <div className="flex-1 p-6 md:p-8 animate-in-fade pb-24">
@@ -82,17 +147,44 @@ export default function Dashboard() {
       {/* Header Section */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
         <div>
-          <h2 className="text-4xl font-black uppercase tracking-tight mb-2">Cockpit</h2>
+          <h2 className="text-4xl font-black uppercase tracking-tight mb-2">
+            {isOwnProfile ? 'COCKPIT' : `${profileUser?.name}'S PROFILE`}
+          </h2>
           <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 font-mono text-muted-foreground uppercase tracking-widest text-xs">
-            <span>OPERATOR: {dbUser?.name || 'GUEST'}</span>
-            <span className="hidden md:inline text-border">|</span>
-            <span className="text-accent-foreground font-bold">RANK: {dbUser?.level || 'N/A'}</span>
-            <span className="hidden md:inline text-border">|</span>
-            <span>XP: {dbUser?.points || 0}</span>
+            <span className="text-foreground font-bold">OPERATOR: {profileUser?.name || 'UNKNOWN'}</span>
+            <span className="hidden md:inline text-muted-foreground/50">|</span>
+            <span className="text-swiss-red font-black">RANK: {profileUser?.level || 'N/A'}</span>
+            <span className="hidden md:inline text-muted-foreground/50">|</span>
+            <span className="text-foreground font-bold">XP: {profileUser?.points || 0}</span>
+          </div>
+          {/* Follow Counts */}
+          <div className="flex gap-4 mt-2 font-mono text-xs">
+            <span className="text-foreground"><strong>{followCounts?.followers || 0}</strong> FOLLOWERS</span>
+            <span className="text-muted-foreground">|</span>
+            <span className="text-foreground"><strong>{followCounts?.following || 0}</strong> FOLLOWING</span>
           </div>
         </div>
 
         <div className="flex gap-4 items-center w-full md:w-auto">
+          {!isOwnProfile && currentUser && (
+            <Button
+              size="lg"
+              className={`h-12 border-2 uppercase font-bold min-w-[140px] ${isFollowed ? 'bg-white text-black hover:bg-gray-200' : 'bg-swiss-red text-white hover:bg-red-600'}`}
+              onClick={() => followMutation.mutate()}
+              disabled={followMutation.isPending}
+            >
+              {isFollowed ? (
+                <>
+                  <UserCheck className="mr-2 h-4 w-4" /> SUBSCRIBED
+                </>
+              ) : (
+                <>
+                  <UserPlus className="mr-2 h-4 w-4" /> SUBSCRIBE
+                </>
+              )}
+            </Button>
+          )}
+
           <Button size="lg" className="h-12 border-2 uppercase font-bold" asChild>
             <Link to="/browse">
               <BookOpen className="mr-2 h-4 w-4" />
@@ -120,7 +212,7 @@ export default function Dashboard() {
 
             <div>
               <h3 className="text-2xl md:text-4xl font-black uppercase mb-4 max-w-xl leading-none tracking-tight">
-                {activeCourse ? activeCourse.category?.name : "Select a Course"}
+                {activeCourse ? activeCourse.category?.name : "Selecting Course..."}
               </h3>
               <div className="flex gap-8 font-mono text-xs md:text-sm text-muted-foreground uppercase tracking-widest">
                 <span className="flex items-center gap-2">
@@ -237,7 +329,7 @@ export default function Dashboard() {
           <div className="absolute inset-0 bg-black/10" />
           <CardContent className="relative z-10 text-center p-8">
             <div className="mb-2 font-black text-6xl tracking-tighter flex items-center justify-center gap-2">
-              {dbUser?.streak_count || 0} <Flame className="h-8 w-8 fill-current" />
+              {profileUser?.streak_count || 0} <Flame className="h-8 w-8 fill-current" />
             </div>
             <h3 className="font-bold uppercase text-sm tracking-widest mb-1">Day Streak</h3>
             <p className="font-mono text-[10px] opacity-75">CONSISTENCY IS KEY</p>
@@ -247,12 +339,12 @@ export default function Dashboard() {
 
         {/* ------------------- ROW 4 ------------------- */}
 
-        {/* Queue List */}
+        {/* Queue List / Recent Uploads */}
         <Card className="col-span-1 md:col-span-4 border-2 shadow-none flex flex-col justify-between min-h-[240px]">
           <CardContent className="p-6">
             <div className="flex items-center gap-2 mb-6">
               <List className="h-4 w-4" />
-              <h4 className="uppercase text-lg font-black tracking-tight">Queue</h4>
+              <h4 className="uppercase text-lg font-black tracking-tight">{isOwnProfile ? 'Queue' : 'Uploads'}</h4>
             </div>
 
             <div className="space-y-4">
@@ -273,9 +365,15 @@ export default function Dashboard() {
             </div>
           </CardContent>
           <div className="p-4 border-t-2 border-border">
-            <Button variant="ghost" className="w-full text-xs font-mono h-8 uppercase" asChild>
-              <Link to="/upload">Upload New</Link>
-            </Button>
+            {isOwnProfile ? (
+              <Button variant="ghost" className="w-full text-xs font-mono h-8 uppercase" asChild>
+                <Link to="/upload">Upload New</Link>
+              </Button>
+            ) : (
+              <Button variant="ghost" className="w-full text-xs font-mono h-8 uppercase" disabled>
+                View All Uploads
+              </Button>
+            )}
           </div>
         </Card>
 
@@ -289,7 +387,7 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <span className="font-mono text-5xl md:text-6xl font-bold tracking-tighter">
-                    {dbUser?.points?.toLocaleString() || 0}
+                    {profileUser?.points?.toLocaleString() || 0}
                   </span>
                   <div className="font-mono text-xs uppercase text-muted-foreground tracking-widest">
                     Total System XP
@@ -300,7 +398,7 @@ export default function Dashboard() {
 
             <div className="hidden md:block w-1/3">
               <div className="flex justify-between text-[10px] font-mono uppercase mb-2">
-                <span>Progress to {getNextLevelThreshold(dbUser?.level || 'beginner')} XP</span>
+                <span>Progress to {getNextLevelThreshold(profileUser?.level || 'beginner')} XP</span>
                 <span>{progressPercent}%</span>
               </div>
               <div className="h-4 w-full border-2 border-foreground p-0.5">

@@ -262,3 +262,9 @@ export function calculateQuizScore(correct: number, total: number): number {
   if (total === 0) return 0;
   return Math.round((correct / total) * 100);
 }
+
+export interface Follow {
+  follower_id: string;
+  following_id: string;
+  created_at: string;
+}

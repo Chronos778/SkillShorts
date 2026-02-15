@@ -52,12 +52,13 @@ const App = () => {
 
               {/* Main App Shell */}
               <Route path="/" element={<LandingPage />} />
-              
+
               <Route element={<SwissShell />}>
 
                 {/* Public */}
                 <Route path="/feed" element={<Index />} />
                 <Route path="/browse" element={<Browse />} />
+                <Route path="/profile/:id" element={<Dashboard />} />
                 <Route path="/video/:id" element={<VideoPlayer />} />
 
                 {/* Protected */}

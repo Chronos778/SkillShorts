@@ -301,3 +301,24 @@ export async function getRecentProgress(userId: string): Promise<Progress[]> {
   if (error || !data) return [];
   return data as Progress[];
 }
+/**
+ * Get the most recent progress (watched or completed) to determine active module
+ */
+export async function getLastActiveProgress(userId: string): Promise<Progress | null> {
+  const { data, error } = await supabase
+    .from('progress')
+    .select(`
+      *,
+      video:videos(
+        *,
+        category:categories(*)
+      )
+    `)
+    .eq('user_id', userId)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error || !data) return null;
+  return data as Progress;
+}

@@ -80,18 +80,30 @@ export async function getVideoReactionInfo(videoId: string, userId?: string): Pr
  * Set or update user's reaction for a video
  */
 export async function setUserVideoReaction(videoId: string, userId: string, reaction: VideoReaction | null): Promise<boolean> {
+  console.log('[Videos] setUserVideoReaction', { videoId, userId, reaction });
+
   if (reaction === null) {
-    const { error } = await supabase
+    const { error, count } = await supabase
       .from('video_reactions')
-      .delete()
+      .delete({ count: 'exact' })
       .eq('video_id', videoId)
       .eq('user_id', userId);
+
+    if (error) {
+      console.error('[Videos] setUserVideoReaction DELETE error:', error);
+    } else {
+      console.log('[Videos] setUserVideoReaction DELETE success count:', count);
+    }
     return !error;
   }
 
   const { error } = await supabase
     .from('video_reactions')
     .upsert({ video_id: videoId, user_id: userId, reaction }, { onConflict: 'video_id,user_id' });
+
+  if (error) {
+    console.error('[Videos] setUserVideoReaction UPSERT error:', error);
+  }
   return !error;
 }
 
