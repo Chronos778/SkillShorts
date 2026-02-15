@@ -387,13 +387,37 @@ export default function Upload() {
                       {quizQuestions.length > 1 && <Trash2 onClick={() => removeQuestion(i)} className="w-3 h-3 cursor-pointer hover:text-destructive" />}
                     </div>
                     <Input value={q.question} onChange={(e) => updateQuestion(i, "question", e.target.value)} placeholder="QUESTION TEXT" className="mb-2 font-bold text-sm" />
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 gap-2">
                       {q.options.map((opt, oIdx) => (
-                        <div key={oIdx} className="relative group">
-                          <Input value={opt} onChange={(e) => updateOption(i, oIdx, e.target.value)} placeholder={`OPT ${oIdx + 1}`} className={cn("pr-8 text-xs", q.correct_answer === oIdx && "border-success bg-success/5")} />
-                          <div onClick={() => updateQuestion(i, "correct_answer", oIdx)} className={cn("absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 border border-foreground/50 rounded-full cursor-pointer hover:border-foreground", q.correct_answer === oIdx && "bg-success border-success")} />
+                        <div key={oIdx} className={cn(
+                          "flex items-center gap-2 p-2 border rounded cursor-pointer transition-all",
+                          q.correct_answer === oIdx
+                            ? "border-success bg-success/10"
+                            : "border-border hover:border-foreground/30"
+                        )} onClick={() => updateQuestion(i, "correct_answer", oIdx)}>
+                          <div className={cn(
+                            "w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors",
+                            q.correct_answer === oIdx
+                              ? "border-success bg-success"
+                              : "border-muted-foreground/40"
+                          )}>
+                            {q.correct_answer === oIdx && (
+                              <CheckCircle className="w-3 h-3 text-white" />
+                            )}
+                          </div>
+                          <Input
+                            value={opt}
+                            onChange={(e) => { e.stopPropagation(); updateOption(i, oIdx, e.target.value); }}
+                            onClick={(e) => e.stopPropagation()}
+                            placeholder={`Option ${oIdx + 1}`}
+                            className="text-xs border-0 bg-transparent p-0 h-auto focus-visible:ring-0 shadow-none"
+                          />
+                          {q.correct_answer === oIdx && (
+                            <span className="text-[9px] font-bold text-success uppercase tracking-wider shrink-0">✓ Correct</span>
+                          )}
                         </div>
                       ))}
+                      <p className="text-[10px] font-mono text-muted-foreground mt-1">Click an option to mark it as the correct answer</p>
                     </div>
                   </div>
                 ))}
