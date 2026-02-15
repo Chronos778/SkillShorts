@@ -4,17 +4,19 @@ import { supabase } from '@/lib/supabase';
  * Follow a user
  */
 export async function followUser(followerId: string, followingId: string): Promise<boolean> {
+    console.log('[Social] followUser', { followerId, followingId });
     const { error } = await supabase
         .from('follows')
-        .insert({
+        .upsert({
             follower_id: followerId,
             following_id: followingId
-        });
+        }, { onConflict: 'follower_id,following_id' });
 
     if (error) {
-        console.error('Error following user:', error);
+        console.error('[Social] followUser error:', error);
         return false;
     }
+    console.log('[Social] followUser success');
     return true;
 }
 
@@ -22,6 +24,7 @@ export async function followUser(followerId: string, followingId: string): Promi
  * Unfollow a user
  */
 export async function unfollowUser(followerId: string, followingId: string): Promise<boolean> {
+    console.log('[Social] unfollowUser', { followerId, followingId });
     const { error } = await supabase
         .from('follows')
         .delete()
@@ -29,9 +32,10 @@ export async function unfollowUser(followerId: string, followingId: string): Pro
         .eq('following_id', followingId);
 
     if (error) {
-        console.error('Error unfollowing user:', error);
+        console.error('[Social] unfollowUser error:', error);
         return false;
     }
+    console.log('[Social] unfollowUser success');
     return true;
 }
 
@@ -44,10 +48,10 @@ export async function isFollowing(followerId: string, followingId: string): Prom
         .select('*')
         .eq('follower_id', followerId)
         .eq('following_id', followingId)
-        .single();
+        .maybeSingle();
 
-    if (error && error.code !== 'PGRST116') { // PGRST116 is "Row not found"
-        console.error('Error checking follow status:', error);
+    if (error) {
+        console.error('[Social] isFollowing error:', error);
     }
 
     return !!data;
@@ -70,8 +74,10 @@ export async function getFollowCounts(userId: string): Promise<{ followers: numb
         .eq('follower_id', userId);
 
     if (e1 || e2) {
-        console.error('Error getting follow counts:', e1, e2);
+        console.error('[Social] getFollowCounts error:', e1, e2);
     }
+
+    console.log('[Social] getFollowCounts', { userId, followers, following });
 
     return {
         followers: followers || 0,

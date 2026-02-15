@@ -501,6 +501,54 @@ CREATE POLICY "progress_insert" ON progress FOR INSERT WITH CHECK (true);
 CREATE POLICY "progress_update" ON progress FOR UPDATE USING (true);
 CREATE POLICY "progress_delete" ON progress FOR DELETE USING (true);
 
+-- Reactions & Comments (permissive delete — old auth.uid() policies don't work with Clerk)
+DROP POLICY IF EXISTS "reactions_select_all" ON video_reactions;
+DROP POLICY IF EXISTS "reactions_insert_all" ON video_reactions;
+DROP POLICY IF EXISTS "reactions_update_all" ON video_reactions;
+DROP POLICY IF EXISTS "reactions_delete_all" ON video_reactions;
+
+CREATE POLICY "reactions_select_all" ON video_reactions FOR SELECT USING (true);
+CREATE POLICY "reactions_insert_all" ON video_reactions FOR INSERT WITH CHECK (true);
+CREATE POLICY "reactions_update_all" ON video_reactions FOR UPDATE USING (true);
+CREATE POLICY "reactions_delete_all" ON video_reactions FOR DELETE USING (true);
+
+DROP POLICY IF EXISTS "comments_select_all" ON video_comments;
+DROP POLICY IF EXISTS "comments_insert_all" ON video_comments;
+DROP POLICY IF EXISTS "comments_update_all" ON video_comments;
+DROP POLICY IF EXISTS "comments_delete_all" ON video_comments;
+
+CREATE POLICY "comments_select_all" ON video_comments FOR SELECT USING (true);
+CREATE POLICY "comments_insert_all" ON video_comments FOR INSERT WITH CHECK (true);
+CREATE POLICY "comments_update_all" ON video_comments FOR UPDATE USING (true);
+CREATE POLICY "comments_delete_all" ON video_comments FOR DELETE USING (true);
+
+
+-- ============================================================
+-- 011b: Follows table
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS follows (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  follower_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+  following_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(follower_id, following_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_follows_follower ON follows(follower_id);
+CREATE INDEX IF NOT EXISTS idx_follows_following ON follows(following_id);
+
+ALTER TABLE follows ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "follows_select" ON follows;
+CREATE POLICY "follows_select" ON follows FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "follows_insert" ON follows;
+CREATE POLICY "follows_insert" ON follows FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "follows_delete" ON follows;
+CREATE POLICY "follows_delete" ON follows FOR DELETE USING (true);
+
 
 -- ============================================================
 -- 012: Notifications table
