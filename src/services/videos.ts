@@ -504,3 +504,19 @@ export async function rejectVideo(videoId: string): Promise<boolean> {
   }
   return true;
 }
+
+/**
+ * Update a video
+ */
+export async function updateVideo(videoId: string, updates: Partial<Video>): Promise<boolean> {
+  const { error } = await supabase
+    .from('videos')
+    .update(updates)
+    .eq('id', videoId);
+
+  if (error) {
+    console.error('Error updating video:', error);
+    return false;
+  }
+  return true;
+}
