@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Github, Twitter, Linkedin, Sun, Moon } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { Logo } from "@/components/Logo";
 
 const Footer: React.FC = () => {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
@@ -33,10 +34,10 @@ const Footer: React.FC = () => {
           
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-8 h-8 bg-swiss-blue dark:bg-swiss-vibrantBlue border-2 border-white flex items-center justify-center">
-                 <span className="text-white font-bold font-mono text-lg">S</span>
-              </div>
-              <span className="font-sans font-black text-2xl uppercase tracking-tighter">SkillClip</span>
+               <Logo showText={false} iconClassName="w-8 h-8 rounded-none border-2 border-white bg-swiss-blue dark:bg-swiss-vibrantBlue text-white" />
+               <span className="font-sans font-black text-2xl uppercase tracking-tighter">
+                  <span className="text-swiss-blue dark:text-swiss-vibrantBlue">Skill</span>Shorts
+               </span>
             </div>
             <p className="font-mono text-sm text-gray-400 max-w-sm mb-6">
               A verified educational platform designed for the modern attention span.
@@ -71,7 +72,7 @@ const Footer: React.FC = () => {
         </div>
 
         <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center font-mono text-xs text-gray-500 uppercase">
-          <div>© 2024 SkillClip Inc. All Rights Reserved.</div>
+          <div>© 2024 SkillShorts Inc. All Rights Reserved.</div>
           <div className="mt-4 md:mt-0 flex gap-4 items-center">
             <span>System Status: <span className="text-green-500">Normal</span></span>
             <span className="hidden sm:inline">|</span>

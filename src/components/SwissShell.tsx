@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { syncUserFromClerk } from "@/services/users";
 import { type User as DbUser } from "@/types";
+import { Logo } from "@/components/Logo";
 
 export function SwissShell() {
     const location = useLocation();
@@ -66,11 +67,9 @@ export function SwissShell() {
       /* -------------------------------------------------------------------------- */}
             <aside className="hidden md:flex w-64 flex-col border-r-2 border-border bg-sidebar h-full flex-shrink-0 z-50">
                 <div className="h-16 flex items-center px-6 border-b-2 border-border">
+// Mobile Logo
                     <Link to="/" className="flex items-center gap-3 group">
-                        <div className="w-8 h-8 bg-black text-white flex items-center justify-center font-black tracking-tighter text-lg dark:bg-white dark:text-black transition-transform group-hover:scale-110">
-                            SC
-                        </div>
-                        <span className="font-black tracking-tighter text-xl uppercase">SkillClip</span>
+                        <Logo />
                     </Link>
                 </div>
 
@@ -137,10 +136,10 @@ export function SwissShell() {
       /*                                MOBILE HEADER                                */
       /* -------------------------------------------------------------------------- */}
             <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-background border-b-2 border-border z-50 flex items-center justify-between px-4">
-                <Link to="/" className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-foreground text-background flex items-center justify-center font-black text-xs">SC</div>
-                    <span className="font-black tracking-tighter uppercase">SkillClip</span>
-                </Link>
+// Desktop Logo
+                    <Link to="/" className="flex items-center gap-3 group">
+                        <Logo />
+                    </Link>
                 <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-2">
                     {mobileMenuOpen ? <X /> : <Menu />}
                 </button>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Menu, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Button from './ui/Button';
+import { Logo } from "@/components/Logo";
 
 const Navbar: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -12,11 +13,11 @@ const Navbar: React.FC = () => {
         <div className="flex justify-between h-20">
           <div className="flex items-center">
             <Link to="/" className="flex-shrink-0 flex items-center gap-3 group">
-              <div className="w-10 h-10 bg-swiss-blue dark:bg-swiss-vibrantBlue border-2 border-black dark:border-white flex items-center justify-center shadow-hard-sm dark:shadow-hard-sm-white group-hover:shadow-hard dark:group-hover:shadow-hard-white transition-all">
-                 <span className="text-white font-bold font-mono text-xl">S</span>
-              </div>
+              <Logo showText={false} iconClassName="w-10 h-10 rounded-none border-2 border-black dark:border-white shadow-hard-sm dark:shadow-hard-sm-white group-hover:shadow-hard dark:group-hover:shadow-hard-white transition-all bg-swiss-blue dark:bg-swiss-vibrantBlue text-white" />
               <div className="flex flex-col">
-                <span className="font-sans font-black text-xl tracking-tighter uppercase leading-none dark:text-white">SkillClip</span>
+                <span className="font-sans font-black text-xl tracking-tighter uppercase leading-none dark:text-white">
+                  <span className="text-swiss-blue dark:text-swiss-vibrantBlue">Skill</span>Shorts
+                </span>
                 <span className="font-mono text-[10px] text-swiss-darkGray dark:text-gray-400">SYSTEM / v2.0</span>
               </div>
             </Link>
