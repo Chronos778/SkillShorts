@@ -503,5 +503,37 @@ CREATE POLICY "progress_delete" ON progress FOR DELETE USING (true);
 
 
 -- ============================================================
+-- 012: Notifications table
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+  actor_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+  type TEXT NOT NULL CHECK (type IN ('like', 'comment', 'follow')),
+  entity_id UUID,
+  is_read BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(user_id) WHERE is_read = false;
+
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "notifications_select" ON notifications;
+CREATE POLICY "notifications_select" ON notifications FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "notifications_insert" ON notifications;
+CREATE POLICY "notifications_insert" ON notifications FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "notifications_update" ON notifications;
+CREATE POLICY "notifications_update" ON notifications FOR UPDATE USING (true);
+
+DROP POLICY IF EXISTS "notifications_delete" ON notifications;
+CREATE POLICY "notifications_delete" ON notifications FOR DELETE USING (true);
+
+
+-- ============================================================
 -- ✅ DONE — All migrations applied!
 -- ============================================================

@@ -25,6 +25,7 @@ import {
 } from '@/services/videos';
 import { getUserByClerkId } from '@/services/users';
 import { followUser, unfollowUser, isFollowing } from '@/services/social';
+import { createNotification } from '@/services/notifications';
 import EditVideoDialog from './EditVideoDialog';
 
 // --- Sub-component for Subscribe Button ---
@@ -209,8 +210,12 @@ const ReelCard: React.FC<ReelCardProps> = ({ video }) => {
                 }
             }
         },
-        onSettled: () => {
+        onSettled: (_, __, variables) => {
             queryClient.invalidateQueries({ queryKey: ['video-reactions', video.id] });
+            // Send notification to video creator on like
+            if (variables?.reaction === 'like' && dbUser?.id && video.creator_id) {
+                createNotification(video.creator_id, dbUser.id, 'like', video.id);
+            }
         }
     });
 
@@ -249,6 +254,10 @@ const ReelCard: React.FC<ReelCardProps> = ({ video }) => {
             queryClient.invalidateQueries({ queryKey: ['video-comments', video.id] });
             setCommentText("");
             toast({ title: "Comment added" });
+            // Send notification to video creator
+            if (dbUser?.id && video.creator_id) {
+                createNotification(video.creator_id, dbUser.id, 'comment', video.id);
+            }
         },
         onError: () => {
             toast({ title: "Failed to post comment", variant: "destructive" });

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { getVideoById, incrementViewCount, getVideoReactionInfo, setUserVideoReaction, getVideoComments, addVideoComment, deleteVideo } from "@/services/videos";
 import { getUserByClerkId } from "@/services/users";
 import { markVideoWatched, submitQuiz } from "@/services/progress";
+import { createNotification } from "@/services/notifications";
 import {
   Play, ArrowLeft, CheckCircle,
   XCircle, Clock, BookOpen, Trophy, Loader2,
@@ -71,8 +72,12 @@ export default function VideoPlayer() {
       if (!dbUser?.id || !id) throw new Error('Not authenticated');
       return setUserVideoReaction(id, dbUser.id, reaction);
     },
-    onSuccess: () => {
+    onSuccess: (_, reaction) => {
       queryClient.invalidateQueries({ queryKey: ['reactionInfo'] });
+      // Notify video creator on like
+      if (reaction === 'like' && dbUser?.id && videoData?.video?.creator_id) {
+        createNotification(videoData.video.creator_id, dbUser.id, 'like', id!);
+      }
     }
   });
 
@@ -91,6 +96,10 @@ export default function VideoPlayer() {
     onSuccess: () => {
       setNewComment("");
       queryClient.invalidateQueries({ queryKey: ['comments'] });
+      // Notify video creator on comment
+      if (dbUser?.id && videoData?.video?.creator_id) {
+        createNotification(videoData.video.creator_id, dbUser.id, 'comment', id!);
+      }
     }
   });
 
