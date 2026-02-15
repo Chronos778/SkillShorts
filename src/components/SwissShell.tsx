@@ -70,7 +70,7 @@ export function SwissShell() {
                         <div className="w-8 h-8 bg-black text-white flex items-center justify-center font-black tracking-tighter text-lg dark:bg-white dark:text-black transition-transform group-hover:scale-110">
                             SC
                         </div>
-                        <span className="font-black tracking-tighter text-xl uppercase">SkillClip</span>
+                        <span className="font-black tracking-tighter text-xl uppercase">SkillShorts</span>
                     </Link>
                 </div>
 
@@ -139,7 +139,7 @@ export function SwissShell() {
             <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-background border-b-2 border-border z-50 flex items-center justify-between px-4">
                 <Link to="/" className="flex items-center gap-2">
                     <div className="w-8 h-8 bg-foreground text-background flex items-center justify-center font-black text-xs">SC</div>
-                    <span className="font-black tracking-tighter uppercase">SkillClip</span>
+                    <span className="font-black tracking-tighter uppercase">SkillShorts</span>
                 </Link>
                 <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-2">
                     {mobileMenuOpen ? <X /> : <Menu />}

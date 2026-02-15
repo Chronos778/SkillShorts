@@ -56,6 +56,11 @@ Thumbs.db
 *.temp
 .cache
 
+# Application-specific
+*.tsbuildinfo
+.vercel
+.netlify
+
 # AI assistant rules (keep local)
 .clinerules/
 .kilocode/rules/

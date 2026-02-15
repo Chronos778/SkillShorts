@@ -30,13 +30,13 @@ const Footer: React.FC = () => {
     <footer className="bg-swiss-black dark:bg-[#050505] text-white py-16 border-t-2 border-black dark:border-white transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
-          
+
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-8 h-8 bg-swiss-blue dark:bg-swiss-vibrantBlue border-2 border-white flex items-center justify-center">
-                 <span className="text-white font-bold font-mono text-lg">S</span>
+                <span className="text-white font-bold font-mono text-lg">S</span>
               </div>
-              <span className="font-sans font-black text-2xl uppercase tracking-tighter">SkillClip</span>
+              <span className="font-sans font-black text-2xl uppercase tracking-tighter">SkillShorts</span>
             </div>
             <p className="font-mono text-sm text-gray-400 max-w-sm mb-6">
               A verified educational platform designed for the modern attention span.
@@ -71,17 +71,17 @@ const Footer: React.FC = () => {
         </div>
 
         <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center font-mono text-xs text-gray-500 uppercase">
-          <div>© 2024 SkillClip Inc. All Rights Reserved.</div>
+          <div>© 2024 SkillShorts Inc. All Rights Reserved.</div>
           <div className="mt-4 md:mt-0 flex gap-4 items-center">
             <span>System Status: <span className="text-green-500">Normal</span></span>
             <span className="hidden sm:inline">|</span>
-            <button 
-                onClick={toggleTheme} 
-                className="flex items-center gap-2 hover:text-white transition-colors"
-                aria-label="Toggle Dark Mode"
+            <button
+              onClick={toggleTheme}
+              className="flex items-center gap-2 hover:text-white transition-colors"
+              aria-label="Toggle Dark Mode"
             >
-                {theme === 'light' ? <Moon size={14} /> : <Sun size={14} />}
-                <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
+              {theme === 'light' ? <Moon size={14} /> : <Sun size={14} />}
+              <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
             </button>
           </div>
         </div>

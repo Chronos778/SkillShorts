@@ -40,17 +40,16 @@ export function Navbar() {
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-between h-16 md:h-18">
             {/* Logo - Hidden on mobile */}
-            <Link 
-              to="/" 
+            <Link
+              to="/"
               className="hidden md:flex items-center gap-3 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2"
             >
               <img
                 src="/skilllo.png"
-                alt="SkillClip logo"
                 className="w-11 h-11 rounded-xl shadow-md group-hover:shadow-glow transition-shadow duration-300 object-cover bg-card"
               />
               <span className="text-xl font-bold text-foreground">
-                Skill<span className="text-primary">Clip</span>
+                Skill<span className="text-primary">Shorts</span>
               </span>
             </Link>
 
@@ -85,7 +84,7 @@ export function Navbar() {
                   <span className="text-sm font-bold">{dbUser?.points?.toLocaleString() || 0}</span>
                 </div>
                 {/* Clerk UserButton */}
-                <UserButton 
+                <UserButton
                   afterSignOutUrl="/"
                   appearance={{
                     elements: {
@@ -95,7 +94,7 @@ export function Navbar() {
                 />
               </SignedIn>
               <SignedOut>
-                <Link 
+                <Link
                   to="/sign-in"
                   className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
                 >
