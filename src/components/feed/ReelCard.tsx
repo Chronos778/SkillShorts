@@ -78,6 +78,21 @@ const ReelCard: React.FC<ReelCardProps> = ({ video }) => {
     const { toast } = useToast();
     const [commentText, setCommentText] = useState("");
 
+    // --- YouTube Detection ---
+    const getYouTubeId = (url: string): string | null => {
+        if (!url) return null;
+        try {
+            const u = new URL(url);
+            if (u.hostname.includes('youtube.com') || u.hostname.includes('youtu.be')) {
+                if (u.hostname.includes('youtu.be')) return u.pathname.slice(1);
+                return u.searchParams.get('v') || u.pathname.split('/').pop() || null;
+            }
+        } catch { }
+        return null;
+    };
+    const youtubeId = getYouTubeId(video.video_url);
+    const isYouTube = !!youtubeId;
+
     // --- Resolve Supabase User ---
     const { data: dbUser } = useQuery({
         queryKey: ['db-user', user?.id],
@@ -270,8 +285,16 @@ const ReelCard: React.FC<ReelCardProps> = ({ video }) => {
         <div className="relative w-full max-w-[400px] h-full max-h-[800px] bg-black rounded-2xl overflow-hidden shadow-2xl border border-white/10 flex-shrink-0 group">
 
             {/* Video Player */}
-            <div className="absolute inset-0 cursor-pointer" onClick={togglePlay}>
-                {video.video_url ? (
+            <div className="absolute inset-0 cursor-pointer" onClick={!isYouTube ? togglePlay : undefined}>
+                {isYouTube ? (
+                    <iframe
+                        src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=1&loop=1&playlist=${youtubeId}&controls=0&modestbranding=1&rel=0&showinfo=0&playsinline=1`}
+                        className="w-full h-full"
+                        style={{ border: 'none', pointerEvents: 'auto' }}
+                        allow="autoplay; encrypted-media"
+                        allowFullScreen
+                    />
+                ) : video.video_url ? (
                     <video
                         ref={videoRef}
                         src={video.video_url}
@@ -288,8 +311,8 @@ const ReelCard: React.FC<ReelCardProps> = ({ video }) => {
                     />
                 )}
 
-                {/* Play/Pause Overlay Icon */}
-                {!isPlaying && (
+                {/* Play/Pause Overlay Icon (only for native video) */}
+                {!isYouTube && !isPlaying && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/20 z-10">
                         <Play className="w-16 h-16 fill-white text-white opacity-80" />
                     </div>
