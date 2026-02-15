@@ -4,6 +4,7 @@ import { SignedIn, SignedOut, UserButton, useUser } from "@clerk/clerk-react";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { getUserByClerkId, syncUserFromClerk } from "@/services/users";
+import { Logo } from "@/components/Logo";
 import type { User } from "@/types";
 
 const navItems = [
@@ -40,17 +41,15 @@ export function Navbar() {
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-between h-16 md:h-18">
             {/* Logo - Hidden on mobile */}
-            <Link
-              to="/"
+            <Link 
+              to="/" 
               className="hidden md:flex items-center gap-3 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2"
             >
-              <img
-                src="/skilllo.png"
-                className="w-11 h-11 rounded-xl shadow-md group-hover:shadow-glow transition-shadow duration-300 object-cover bg-card"
+              <Logo 
+                showText={true} 
+                className="gap-3" 
+                iconClassName="w-11 h-11 rounded-xl shadow-md group-hover:shadow-glow transition-shadow duration-300 bg-card" 
               />
-              <span className="text-xl font-bold text-foreground">
-                Skill<span className="text-primary">Shorts</span>
-              </span>
             </Link>
 
             {/* Nav Items */}
