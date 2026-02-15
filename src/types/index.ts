@@ -83,7 +83,7 @@ export interface QuizQuestion {
   question: string;
   options: string[];
   correct_answer: number; // Index of correct option
-  order: number;
+  order_index: number;
   created_at: string;
 }
 

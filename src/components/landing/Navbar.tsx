@@ -25,17 +25,17 @@ const Navbar: React.FC = () => {
 
           <div className="hidden md:flex items-center space-x-8">
             <div className="relative group">
-               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span className="font-mono text-xs text-gray-400">CMD_K</span>
-               </div>
-               <input 
-                  type="text" 
-                  disabled
-                  placeholder="SEARCH DATABASE..." 
-                  className="pl-16 pr-4 py-2 border-2 border-black dark:border-white font-mono text-xs w-64 bg-swiss-gray dark:bg-swiss-darkGray dark:text-white focus:outline-none cursor-not-allowed opacity-70"
-               />
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <span className="font-mono text-xs text-gray-400">CMD_K</span>
+              </div>
+              <input
+                type="text"
+                disabled
+                placeholder="SEARCH DATABASE..."
+                className="pl-16 pr-4 py-2 border-2 border-black dark:border-white font-mono text-xs w-64 bg-swiss-gray dark:bg-swiss-darkGray dark:text-white focus:outline-none cursor-not-allowed opacity-70"
+              />
             </div>
-            
+
             <a href="#features" className="font-mono text-sm uppercase hover:text-swiss-blue dark:text-gray-200 dark:hover:text-swiss-vibrantBlue transition-colors font-bold">Features</a>
             <a href="#creators" className="font-mono text-sm uppercase hover:text-swiss-blue dark:text-gray-200 dark:hover:text-swiss-vibrantBlue transition-colors font-bold">Creators</a>
             <div className="h-6 w-[2px] bg-black dark:bg-white mx-4"></div>
@@ -60,12 +60,12 @@ const Navbar: React.FC = () => {
       {isMenuOpen && (
         <div className="md:hidden border-t-2 border-black dark:border-white bg-swiss-white dark:bg-swiss-darkBg absolute w-full shadow-hard dark:shadow-hard-white">
           <div className="px-4 pt-4 pb-6 space-y-4">
-             <div className="relative mb-6">
-               <input 
-                  type="text" 
-                  placeholder="SEARCH DATABASE..." 
-                  className="w-full pl-4 pr-4 py-3 border-2 border-black dark:border-white font-mono text-xs bg-swiss-gray dark:bg-swiss-darkGray dark:text-white focus:outline-none"
-               />
+            <div className="relative mb-6">
+              <input
+                type="text"
+                placeholder="SEARCH DATABASE..."
+                className="w-full pl-4 pr-4 py-3 border-2 border-black dark:border-white font-mono text-xs bg-swiss-gray dark:bg-swiss-darkGray dark:text-white focus:outline-none"
+              />
             </div>
             <a href="#features" className="block px-3 py-2 text-base font-bold font-mono uppercase border-l-4 border-transparent hover:border-swiss-blue dark:text-white hover:bg-swiss-gray dark:hover:bg-swiss-darkGray">Features</a>
             <a href="#creators" className="block px-3 py-2 text-base font-bold font-mono uppercase border-l-4 border-transparent hover:border-swiss-blue dark:text-white hover:bg-swiss-gray dark:hover:bg-swiss-darkGray">Creators</a>

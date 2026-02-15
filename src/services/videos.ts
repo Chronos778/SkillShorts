@@ -371,7 +371,7 @@ export async function createVideo(
       question: q.question.trim(),
       options: q.options.map(opt => opt.trim()),
       correct_answer: q.correct_answer,
-      order: index
+      order_index: index
     }));
 
     const { error: questionsError } = await supabase

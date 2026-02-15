@@ -69,7 +69,9 @@ export function SwissShell() {
                 <div className="h-16 flex items-center px-6 border-b-2 border-border">
 // Mobile Logo
                     <Link to="/" className="flex items-center gap-3 group">
+                    <Link to="/" className="flex items-center gap-3 group">
                         <Logo />
+                    </Link>
                     </Link>
                 </div>
 

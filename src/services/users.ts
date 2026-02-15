@@ -25,9 +25,10 @@ export async function createUser(
   name: string,
   avatarUrl?: string
 ): Promise<User | null> {
+  // Use upsert to handle both new and existing users
   const { data, error } = await supabase
     .from('users')
-    .insert({
+    .upsert({
       clerk_user_id: clerkUserId,
       email,
       name,
@@ -36,12 +37,15 @@ export async function createUser(
       points: 0,
       level: 'beginner' as UserLevel,
       streak_count: 0
+    }, {
+      onConflict: 'clerk_user_id',
+      ignoreDuplicates: false
     })
     .select()
     .single();
 
   if (error) {
-    console.error('Error creating user:', error);
+    console.error('Error creating/upserting user:', error);
     return null;
   }
 
@@ -57,15 +61,50 @@ export async function syncUserFromClerk(
   name: string,
   avatarUrl?: string
 ): Promise<User | null> {
-  // Check if user exists
+  console.log('[syncUser] Syncing Clerk user:', clerkUserId);
+
+  // First try to find existing user
   let user = await getUserByClerkId(clerkUserId);
-  
-  if (!user) {
-    // Create new user
-    user = await createUser(clerkUserId, email, name, avatarUrl);
+
+  if (user) {
+    console.log('[syncUser] Found existing user:', user.id);
+    return user;
   }
 
-  return user;
+  // User doesn't exist — upsert to create
+  console.log('[syncUser] User not found, creating...');
+  const { data, error } = await supabase
+    .from('users')
+    .upsert({
+      clerk_user_id: clerkUserId,
+      email,
+      name,
+      avatar_url: avatarUrl,
+      role: 'learner' as UserRole,
+      points: 0,
+      level: 'beginner' as UserLevel,
+      streak_count: 0
+    }, {
+      onConflict: 'clerk_user_id',
+      ignoreDuplicates: false
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('[syncUser] Upsert failed:', error.message, error.details, error.hint);
+    // Last resort: try fetching again (maybe another tab created it)
+    user = await getUserByClerkId(clerkUserId);
+    if (user) {
+      console.log('[syncUser] Found user on retry:', user.id);
+      return user;
+    }
+    console.error('[syncUser] All attempts failed');
+    return null;
+  }
+
+  console.log('[syncUser] Created user:', data?.id);
+  return data as User;
 }
 
 /**

@@ -31,7 +31,7 @@ const Footer: React.FC = () => {
     <footer className="bg-swiss-black dark:bg-[#050505] text-white py-16 border-t-2 border-black dark:border-white transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
-          
+
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center gap-3 mb-6">
                <Logo showText={false} iconClassName="w-8 h-8 rounded-none border-2 border-white bg-swiss-blue dark:bg-swiss-vibrantBlue text-white" />
@@ -76,13 +76,13 @@ const Footer: React.FC = () => {
           <div className="mt-4 md:mt-0 flex gap-4 items-center">
             <span>System Status: <span className="text-green-500">Normal</span></span>
             <span className="hidden sm:inline">|</span>
-            <button 
-                onClick={toggleTheme} 
-                className="flex items-center gap-2 hover:text-white transition-colors"
-                aria-label="Toggle Dark Mode"
+            <button
+              onClick={toggleTheme}
+              className="flex items-center gap-2 hover:text-white transition-colors"
+              aria-label="Toggle Dark Mode"
             >
-                {theme === 'light' ? <Moon size={14} /> : <Sun size={14} />}
-                <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
+              {theme === 'light' ? <Moon size={14} /> : <Sun size={14} />}
+              <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
             </button>
           </div>
         </div>
