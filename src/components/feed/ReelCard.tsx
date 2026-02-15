@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Video, VideoComment } from '@/types';
 import {
     Play, Pause, Heart, MessageCircle, Share2, MoreHorizontal,
-    Volume2, VolumeX, Send, Copy, Twitter, Facebook, ExternalLink
+    Volume2, VolumeX, Send, Copy, Twitter, Facebook, ExternalLink, Edit
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -25,6 +25,7 @@ import {
 } from '@/services/videos';
 import { getUserByClerkId } from '@/services/users';
 import { followUser, unfollowUser, isFollowing } from '@/services/social';
+import EditVideoDialog from './EditVideoDialog';
 
 // --- Sub-component for Subscribe Button ---
 const SubscribeButton = ({ creatorId, currentUserId }: { creatorId: string, currentUserId?: string }) => {
@@ -77,6 +78,22 @@ const ReelCard: React.FC<ReelCardProps> = ({ video }) => {
     const queryClient = useQueryClient();
     const { toast } = useToast();
     const [commentText, setCommentText] = useState("");
+    const [isEditOpen, setIsEditOpen] = useState(false);
+
+    // --- YouTube Detection ---
+    const getYouTubeId = (url: string): string | null => {
+        if (!url) return null;
+        try {
+            const u = new URL(url);
+            if (u.hostname.includes('youtube.com') || u.hostname.includes('youtu.be')) {
+                if (u.hostname.includes('youtu.be')) return u.pathname.slice(1);
+                return u.searchParams.get('v') || u.pathname.split('/').pop() || null;
+            }
+        } catch { }
+        return null;
+    };
+    const youtubeId = getYouTubeId(video.video_url);
+    const isYouTube = !!youtubeId;
 
     // --- Resolve Supabase User ---
     const { data: dbUser } = useQuery({
@@ -111,24 +128,25 @@ const ReelCard: React.FC<ReelCardProps> = ({ video }) => {
 
     // Intersection Observer for Auto-Play/Pause
     useEffect(() => {
+        const videoElement = videoRef.current;
         const observer = new IntersectionObserver(
             ([entry]) => {
                 if (entry.isIntersecting) {
-                    videoRef.current?.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+                    videoElement?.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
                 } else {
-                    videoRef.current?.pause();
+                    videoElement?.pause();
                     setIsPlaying(false);
                 }
             },
             { threshold: 0.6 } // Play when 60% visible
         );
 
-        if (videoRef.current) {
-            observer.observe(videoRef.current);
+        if (videoElement) {
+            observer.observe(videoElement);
         }
 
         return () => {
-            if (videoRef.current) observer.unobserve(videoRef.current);
+            if (videoElement) observer.unobserve(videoElement);
         };
     }, []);
 
@@ -158,7 +176,7 @@ const ReelCard: React.FC<ReelCardProps> = ({ video }) => {
             const previousReaction = queryClient.getQueryData(['video-reactions', video.id, userId]);
 
             // Optimistically update
-            queryClient.setQueryData(['video-reactions', video.id, userId], (old: any) => {
+            queryClient.setQueryData(['video-reactions', video.id, userId], (old: { likes: number, userReaction?: string } | undefined) => {
                 const isAddingLike = reaction === 'like';
                 const wasLiked = old?.userReaction === 'like';
 
@@ -177,7 +195,7 @@ const ReelCard: React.FC<ReelCardProps> = ({ video }) => {
 
             return { previousReaction };
         },
-        onError: (err, newTodo, context: any) => {
+        onError: (err, newTodo, context: { previousReaction: unknown } | undefined) => {
             console.error("Like mutation error:", err);
             toast({ title: "Failed to like video", variant: "destructive" });
             if (context?.previousReaction) {
@@ -270,8 +288,16 @@ const ReelCard: React.FC<ReelCardProps> = ({ video }) => {
         <div className="relative w-full max-w-[400px] h-full max-h-[800px] bg-black rounded-2xl overflow-hidden shadow-2xl border border-white/10 flex-shrink-0 group">
 
             {/* Video Player */}
-            <div className="absolute inset-0 cursor-pointer" onClick={togglePlay}>
-                {video.video_url ? (
+            <div className="absolute inset-0 cursor-pointer" onClick={!isYouTube ? togglePlay : undefined}>
+                {isYouTube ? (
+                    <iframe
+                        src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=1&loop=1&playlist=${youtubeId}&controls=0&modestbranding=1&rel=0&showinfo=0&playsinline=1`}
+                        className="w-full h-full"
+                        style={{ border: 'none', pointerEvents: 'auto' }}
+                        allow="autoplay; encrypted-media"
+                        allowFullScreen
+                    />
+                ) : video.video_url ? (
                     <video
                         ref={videoRef}
                         src={video.video_url}
@@ -288,8 +314,8 @@ const ReelCard: React.FC<ReelCardProps> = ({ video }) => {
                     />
                 )}
 
-                {/* Play/Pause Overlay Icon */}
-                {!isPlaying && (
+                {/* Play/Pause Overlay Icon (only for native video) */}
+                {!isYouTube && !isPlaying && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/20 z-10">
                         <Play className="w-16 h-16 fill-white text-white opacity-80" />
                     </div>
@@ -436,11 +462,29 @@ const ReelCard: React.FC<ReelCardProps> = ({ video }) => {
                         <DropdownMenuItem className="focus:bg-white/10 cursor-pointer">
                             Not Interested
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="focus:bg-white/10 cursor-pointer" onClick={() => toggleMute as any}>
+                        <DropdownMenuItem className="focus:bg-white/10 cursor-pointer" onClick={(e) => toggleMute(e)}>
                             {isMuted ? "Unmute Video" : "Mute Video"}
                         </DropdownMenuItem>
+                        {user?.id === video.creator_id && (
+                            <>
+                                <DropdownMenuSeparator className="bg-white/10" />
+                                <DropdownMenuItem
+                                    className="focus:bg-white/10 cursor-pointer text-blue-400 focus:text-blue-400"
+                                    onClick={() => setIsEditOpen(true)}
+                                >
+                                    <Edit className="w-4 h-4 mr-2" />
+                                    Edit Video
+                                </DropdownMenuItem>
+                            </>
+                        )}
                     </DropdownMenuContent>
                 </DropdownMenu>
+
+                <EditVideoDialog
+                    video={video}
+                    open={isEditOpen}
+                    onOpenChange={setIsEditOpen}
+                />
 
                 <div className="w-10 h-10 rounded-lg border-2 border-white/80 overflow-hidden mt-4">
                     {video.thumbnail_url && <img src={video.thumbnail_url} className="w-full h-full object-cover" />}
