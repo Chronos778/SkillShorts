@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { MockVideo } from '@/data/mockFeed';
 import { Play, Heart, MessageCircle, Share2, MoreHorizontal, Volume2, VolumeX } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 

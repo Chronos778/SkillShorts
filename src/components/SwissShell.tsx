@@ -67,11 +67,14 @@ export function SwissShell() {
       /* -------------------------------------------------------------------------- */}
             <aside className="hidden md:flex w-64 flex-col border-r-2 border-border bg-sidebar h-full flex-shrink-0 z-50">
                 <div className="h-16 flex items-center px-6 border-b-2 border-border">
-// Mobile Logo
                     <Link to="/" className="flex items-center gap-3 group">
-                    <Link to="/" className="flex items-center gap-3 group">
-                        <Logo />
-                    </Link>
+                        <Logo showText={false} iconClassName="w-10 h-10 rounded-none border-2 border-black dark:border-white shadow-hard-sm dark:shadow-hard-sm-white group-hover:shadow-hard dark:group-hover:shadow-hard-white transition-all bg-swiss-blue dark:bg-swiss-vibrantBlue text-white" />
+                        <div className="flex flex-col">
+                            <span className="font-sans font-black text-xl tracking-tighter uppercase leading-none dark:text-white">
+                                <span className="text-swiss-blue dark:text-swiss-vibrantBlue">Skill</span>Shorts
+                            </span>
+                            <span className="font-mono text-[10px] text-muted-foreground">SYSTEM / v2.0</span>
+                        </div>
                     </Link>
                 </div>
 
@@ -138,9 +141,14 @@ export function SwissShell() {
       /*                                MOBILE HEADER                                */
       /* -------------------------------------------------------------------------- */}
             <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-background border-b-2 border-border z-50 flex items-center justify-between px-4">
-// Desktop Logo
                     <Link to="/" className="flex items-center gap-3 group">
-                        <Logo />
+                        <Logo showText={false} iconClassName="w-10 h-10 rounded-none border-2 border-black dark:border-white shadow-hard-sm dark:shadow-hard-sm-white group-hover:shadow-hard dark:group-hover:shadow-hard-white transition-all bg-swiss-blue dark:bg-swiss-vibrantBlue text-white" />
+                        <div className="flex flex-col">
+                            <span className="font-sans font-black text-xl tracking-tighter uppercase leading-none dark:text-white">
+                                <span className="text-swiss-blue dark:text-swiss-vibrantBlue">Skill</span>Shorts
+                            </span>
+                            <span className="font-mono text-[10px] text-muted-foreground">SYSTEM / v2.0</span>
+                        </div>
                     </Link>
                 <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-2">
                     {mobileMenuOpen ? <X /> : <Menu />}
