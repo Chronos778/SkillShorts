@@ -1,28 +1,33 @@
 import { useState, useEffect, useRef } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@clerk/clerk-react";
 import { Button } from "@/components/ui/button";
-import { getVideoById, incrementViewCount, getVideoReactionInfo, setUserVideoReaction, getVideoComments, addVideoComment } from "@/services/videos";
+import { getVideoById, incrementViewCount, getVideoReactionInfo, setUserVideoReaction, getVideoComments, addVideoComment, deleteVideo } from "@/services/videos";
 import { getUserByClerkId } from "@/services/users";
 import { markVideoWatched, submitQuiz } from "@/services/progress";
 import {
   Play, ArrowLeft, CheckCircle,
   XCircle, Clock, BookOpen, Trophy, Loader2,
   ThumbsUp, ThumbsDown, MessageSquare, Info,
-  Share2, MoreVertical, Send, Check
+  Share2, MoreVertical, Send, Check, Copy, Twitter, Facebook, ExternalLink, Edit, Trash2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import EditVideoDialog from "@/components/feed/EditVideoDialog";
 
 export default function VideoPlayer() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user: clerkUser, isSignedIn } = useUser();
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const maxTimeRef = useRef(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [videoProgress, setVideoProgress] = useState(0);
   const [videoComplete, setVideoComplete] = useState(false);
@@ -36,6 +41,7 @@ export default function VideoPlayer() {
   const [quizComplete, setQuizComplete] = useState(false);
   const [pointsEarned, setPointsEarned] = useState(0);
   const [newComment, setNewComment] = useState("");
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
   // Fetch video from database
   const { data: videoData, isLoading } = useQuery({
@@ -133,6 +139,10 @@ export default function VideoPlayer() {
   const handleTimeUpdate = () => {
     const v = videoRef.current;
     if (!v) return;
+    // Track the furthest point they've actually watched
+    if (v.currentTime > maxTimeRef.current) {
+      maxTimeRef.current = v.currentTime;
+    }
     const dur = v.duration || 1;
     const pct = Math.min(100, Math.max(0, (v.currentTime / dur) * 100));
     setVideoProgress(pct);
@@ -141,6 +151,16 @@ export default function VideoPlayer() {
       setIsPlaying(false);
       setActiveTab("quiz"); // Auto-switch to quiz
       if (dbUser?.id && id) markVideoWatched(dbUser.id, id);
+    }
+  };
+
+  // Prevent seeking forward past what they've watched
+  const handleSeeking = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.currentTime > maxTimeRef.current + 0.5) {
+      v.currentTime = maxTimeRef.current;
+      toast.error("You can't skip ahead — watch the full video!");
     }
   };
 
@@ -213,8 +233,11 @@ export default function VideoPlayer() {
               src={videoData?.video?.video_url}
               poster={video.thumbnail}
               controls
+              controlsList="nodownload noplaybackrate"
+              disablePictureInPicture
               className="w-full h-full object-contain"
               onTimeUpdate={handleTimeUpdate}
+              onSeeking={handleSeeking}
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
             />
@@ -233,15 +256,84 @@ export default function VideoPlayer() {
             <ArrowLeft className="w-3 h-3" /> Return
           </Link>
           <div className="flex gap-2">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
-              navigator.clipboard.writeText(window.location.href);
-              toast.success("Link copied to clipboard!");
-            }}>
-              <Share2 className="w-4 h-4" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toast.info("More options coming soon!")}>
-              <MoreVertical className="w-4 h-4" />
-            </Button>
+            {/* Share Dialog */}
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Share2 className="w-4 h-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md bg-zinc-900 border-white/10 text-white">
+                <DialogHeader>
+                  <DialogTitle>Share to</DialogTitle>
+                </DialogHeader>
+                <div className="grid grid-cols-4 gap-4 py-4">
+                  <Button variant="outline" className="flex flex-col h-20 gap-2 border-white/10 hover:bg-white/10 hover:text-white" onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success("Link copied!"); }}>
+                    <Copy className="w-6 h-6" />
+                    <span className="text-xs">Copy Link</span>
+                  </Button>
+                  <Button variant="outline" className="flex flex-col h-20 gap-2 border-white/10 hover:bg-[#1DA1F2]/20 hover:text-[#1DA1F2] hover:border-[#1DA1F2]" onClick={() => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(video.title)}&url=${encodeURIComponent(window.location.href)}`, '_blank')}>
+                    <Twitter className="w-6 h-6" />
+                    <span className="text-xs">Twitter</span>
+                  </Button>
+                  <Button variant="outline" className="flex flex-col h-20 gap-2 border-white/10 hover:bg-[#FF4500]/20 hover:text-[#FF4500] hover:border-[#FF4500]" onClick={() => window.open(`https://www.reddit.com/submit?url=${encodeURIComponent(window.location.href)}&title=${encodeURIComponent(video.title)}`, '_blank')}>
+                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z" /></svg>
+                    <span className="text-xs">Reddit</span>
+                  </Button>
+                  <Button variant="outline" className="flex flex-col h-20 gap-2 border-white/10 hover:bg-[#1877F2]/20 hover:text-[#1877F2] hover:border-[#1877F2]" onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`, '_blank')}>
+                    <Facebook className="w-6 h-6" />
+                    <span className="text-xs">Facebook</span>
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* More Options Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreVertical className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success("Link copied!"); }}>
+                  <Copy className="w-4 h-4 mr-2" /> Copy Link
+                </DropdownMenuItem>
+                {dbUser?.id === videoData?.video?.creator_id && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setIsEditOpen(true)}>
+                      <Edit className="w-4 h-4 mr-2" /> Edit Video
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive"
+                      onClick={async () => {
+                        if (!dbUser?.id || !videoData?.video?.id) return;
+                        const confirmed = window.confirm("Are you sure you want to delete this video? This cannot be undone.");
+                        if (!confirmed) return;
+                        const success = await deleteVideo(videoData.video.id, dbUser.id);
+                        if (success) {
+                          toast.success("Video deleted");
+                          navigate('/browse');
+                        } else {
+                          toast.error("Failed to delete video");
+                        }
+                      }}
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" /> Delete Video
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {videoData?.video && (
+              <EditVideoDialog
+                video={videoData.video}
+                open={isEditOpen}
+                onOpenChange={setIsEditOpen}
+              />
+            )}
           </div>
         </div>
 
@@ -279,7 +371,9 @@ export default function VideoPlayer() {
                     <div className="text-[10px] text-muted-foreground font-mono">AUTHOR</div>
                   </div>
                 </div>
-                <Button size="sm" variant="outline" className="h-8 text-[10px] uppercase font-bold rounded-none">Follow</Button>
+                {dbUser?.id !== videoData?.video?.creator_id && (
+                  <Button size="sm" variant="outline" className="h-8 text-[10px] uppercase font-bold rounded-none">Follow</Button>
+                )}
               </div>
 
               <div className="flex gap-2">
