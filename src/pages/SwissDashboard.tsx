@@ -4,7 +4,20 @@ import { Input } from "@/components/ui/input";
 import { ArrowRight, BookOpen, Grid3X3, List, Play, Search, Settings, Star, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { getApprovedVideos } from "@/services/videos";
+
 const SwissDashboard = () => {
+    const navigate = useNavigate();
+    const { data: videos = [], isLoading } = useQuery({
+        queryKey: ['dashboard-videos'],
+        queryFn: getApprovedVideos
+    });
+
+    const heroVideo = videos[0];
+    const upNextVideos = videos.slice(1, 3);
+
     return (
         <div className="flex h-screen w-full bg-background text-foreground font-sans selection:bg-accent selection:text-white">
             {/* Sidebar - Fixed, Boxy, High Contrast */}
@@ -81,22 +94,38 @@ const SwissDashboard = () => {
                 {/* Bento Grid Layout */}
                 <div className="grid grid-cols-12 gap-6 grid-rows-[240px_240px]">
                     {/* Main Hero Card - Spans 8 cols */}
-                    <Card className="col-span-8 border-2 shadow-none p-0 overflow-hidden relative group">
-                        <div className="absolute inset-0 bg-accent/10 group-hover:bg-accent/5 transition-colors" />
-                        <CardContent className="p-8 h-full flex flex-col justify-between relative z-10">
-                            <div className="flex justify-between items-start">
-                                <span className="inline-block px-3 py-1 bg-accent text-white text-xs font-mono uppercase font-bold">In Progress</span>
-                                <ArrowRight className="h-6 w-6 transform group-hover:translate-x-1 transition-transform" />
-                            </div>
-
-                            <div>
-                                <h3 className="text-3xl font-black uppercase mb-4 max-w-lg">Advanced Typography: Mastering the Swiss Grid</h3>
-                                <div className="flex gap-8 font-mono text-sm text-muted-foreground">
-                                    <span className="flex items-center gap-2"><Play className="h-3 w-3" /> 12 LESSONS</span>
-                                    <span className="flex items-center gap-2"><BookOpen className="h-3 w-3" /> 45 MIN LEFT</span>
+                    <Card
+                        className="col-span-8 border-2 shadow-none p-0 overflow-hidden relative group cursor-pointer"
+                        onClick={() => heroVideo && navigate(`/video/${heroVideo.id}`)}
+                    >
+                        {heroVideo ? (
+                            <>
+                                <div className="absolute inset-0">
+                                    {heroVideo.thumbnail_url && (
+                                        <img src={heroVideo.thumbnail_url} className="w-full h-full object-cover opacity-20 grayscale group-hover:grayscale-0 transition-all duration-500" />
+                                    )}
+                                    <div className="absolute inset-0 bg-accent/10 group-hover:bg-accent/5 transition-colors mix-blend-multiply" />
                                 </div>
-                            </div>
-                        </CardContent>
+                                <CardContent className="p-8 h-full flex flex-col justify-between relative z-10">
+                                    <div className="flex justify-between items-start">
+                                        <span className="inline-block px-3 py-1 bg-accent text-white text-xs font-mono uppercase font-bold">In Progress</span>
+                                        <ArrowRight className="h-6 w-6 transform group-hover:translate-x-1 transition-transform" />
+                                    </div>
+
+                                    <div>
+                                        <h3 className="text-3xl font-black uppercase mb-4 max-w-lg line-clamp-2 leading-none">{heroVideo.title}</h3>
+                                        <div className="flex gap-8 font-mono text-sm text-muted-foreground">
+                                            <span className="flex items-center gap-2"><Play className="h-3 w-3" /> VIDEO</span>
+                                            <span className="flex items-center gap-2"><BookOpen className="h-3 w-3" /> {Math.ceil(heroVideo.duration_seconds / 60)} MIN</span>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </>
+                        ) : (
+                            <CardContent className="p-8 h-full flex items-center justify-center">
+                                <p className="font-mono text-muted-foreground uppercase">No featured content available</p>
+                            </CardContent>
+                        )}
                     </Card>
 
                     {/* Stats Card 1 - Spans 4 cols */}
@@ -106,7 +135,7 @@ const SwissDashboard = () => {
                             style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '20px 20px' }}
                         />
                         <CardContent className="p-8 h-full flex flex-col justify-center relative z-10">
-                            <div className="text-6xl font-black mb-2">12</div>
+                            <div className="text-6xl font-black mb-2">{videos.length}</div>
                             <div className="font-mono text-sm uppercase tracking-widest opacity-80">Courses Completed</div>
                         </CardContent>
                     </Card>
@@ -119,18 +148,24 @@ const SwissDashboard = () => {
                                 <h4 className="uppercase text-lg font-black">Up Next</h4>
                             </div>
 
-                            {[1, 2].map((i) => (
-                                <div key={i} className="py-3 border-b-2 border-border last:border-0 hover:bg-muted/30 cursor-pointer transition-colors group">
+                            {upNextVideos.length > 0 ? upNextVideos.map((video, i) => (
+                                <div
+                                    key={video.id}
+                                    className="py-3 border-b-2 border-border last:border-0 hover:bg-muted/30 cursor-pointer transition-colors group"
+                                    onClick={() => navigate(`/video/${video.id}`)}
+                                >
                                     <div className="flex justify-between items-center mb-1">
-                                        <span className="font-mono text-xs text-accent">MODULE 0{i}</span>
+                                        <span className="font-mono text-xs text-accent">VIDEO 0{i + 1}</span>
                                         <Play className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                                     </div>
-                                    <h4 className="font-bold uppercase text-sm leading-tight truncate">Interaction Design Principles</h4>
+                                    <h4 className="font-bold uppercase text-sm leading-tight truncate">{video.title}</h4>
                                 </div>
-                            ))}
+                            )) : (
+                                <p className="text-xs font-mono text-muted-foreground uppercase py-4">No more videos in queue.</p>
+                            )}
                         </CardContent>
                         <div className="p-4 border-t-2 border-border">
-                            <Button variant="ghost" className="w-full text-xs font-mono h-8">VIEW ALL</Button>
+                            <Button variant="ghost" className="w-full text-xs font-mono h-8" onClick={() => navigate('/browse')}>VIEW ALL</Button>
                         </div>
                     </Card>
 
