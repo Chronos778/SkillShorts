@@ -185,7 +185,7 @@ export default function VideoPlayer() {
   }
 
   const correctCount = (answers || []).filter(Boolean).length;
-  const accuracy = quizComplete ? Math.round((correctCount / video.quiz.length) * 100) : 0;
+  const accuracy = quizComplete && video.quiz.length > 0 ? Math.round((correctCount / video.quiz.length) * 100) : 0;
 
   return (
     <div className="flex flex-col lg:flex-row h-[calc(100vh-4rem)] bg-black text-foreground animate-in-fade">
@@ -233,8 +233,15 @@ export default function VideoPlayer() {
             <ArrowLeft className="w-3 h-3" /> Return
           </Link>
           <div className="flex gap-2">
-            <Button variant="ghost" size="icon" className="h-8 w-8"><Share2 className="w-4 h-4" /></Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="w-4 h-4" /></Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
+              navigator.clipboard.writeText(window.location.href);
+              toast.success("Link copied to clipboard!");
+            }}>
+              <Share2 className="w-4 h-4" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toast.info("More options coming soon!")}>
+              <MoreVertical className="w-4 h-4" />
+            </Button>
           </div>
         </div>
 
@@ -295,11 +302,18 @@ export default function VideoPlayer() {
 
             {/* QUIZ TAB */}
             <TabsContent value="quiz" className="p-6 m-0 h-full">
+
               {!videoComplete ? (
                 <div className="flex flex-col items-center justify-center h-[400px] text-center p-4 opacity-50">
                   <Loader2 className="w-8 h-8 mb-4 animate-spin" />
                   <h3 className="font-bold uppercase">Locked</h3>
                   <p className="text-xs font-mono mt-2">WATCH VIDEO TO UNLOCK</p>
+                </div>
+              ) : video.quiz.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-center animate-in-fade opacity-50">
+                  <BookOpen className="w-12 h-12 mb-4" />
+                  <h3 className="font-bold uppercase">No Quiz</h3>
+                  <p className="text-xs font-mono mt-2">This video has no quiz questions.</p>
                 </div>
               ) : quizComplete ? (
                 <div className="flex flex-col items-center justify-center py-10 text-center animate-in-fade">
