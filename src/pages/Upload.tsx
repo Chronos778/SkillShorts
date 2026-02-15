@@ -119,7 +119,7 @@ export default function Upload() {
     setQuizQuestions(quizQuestions.filter((_, i) => i !== index));
   };
 
-  const updateQuestion = (index: number, field: keyof QuizQuestion, value: any) => {
+  const updateQuestion = (index: number, field: keyof QuizQuestion, value: string | number) => {
     const updated = [...quizQuestions];
     updated[index] = { ...updated[index], [field]: value };
     setQuizQuestions(updated);
@@ -291,9 +291,58 @@ export default function Upload() {
               </div>
             </div>
 
+            {/* 02. Visuals (Thumbnail) */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="font-bold uppercase text-sm tracking-wider">02. Visuals</h2>
+                <div className="flex gap-2">
+                  <Button type="button" size="sm" variant={thumbnailInputMode === 'link' ? 'default' : 'outline'} onClick={() => setThumbnailInputMode('link')} className="uppercase text-[10px] h-7">Link</Button>
+                  <Button type="button" size="sm" variant={thumbnailInputMode === 'file' ? 'default' : 'outline'} onClick={() => setThumbnailInputMode('file')} className="uppercase text-[10px] h-7">File</Button>
+                </div>
+              </div>
+
+              <div className="p-6 border border-border bg-muted/20">
+                {thumbnailInputMode === 'link' ? (
+                  <div className="relative">
+                    <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input value={thumbnailUrl} onChange={(e) => setThumbnailUrl(e.target.value)} placeholder="HTTPS://... (IMAGE)" className="pl-10 font-mono text-sm" />
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Input type="file" accept="image/*" onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setUploadingThumb(true);
+                        try {
+                          const url = await uploadImageFile(file);
+                          setThumbnailUrl(url);
+                          setUploadedThumbName(file.name);
+                        } catch (e) {
+                          console.error(e);
+                          setThumbUploadError("Failed to upload image");
+                        }
+                        setUploadingThumb(false);
+                      }
+                    }} className="font-mono text-sm" />
+                    <p className="text-[10px] font-mono text-muted-foreground">JPG/PNG. MAX 5MB.</p>
+                  </div>
+                )}
+                {(uploadingThumb) && <p className="text-xs font-mono mt-2 animate-pulse">UPLOADING THUMBNAIL...</p>}
+                {uploadedThumbName && !uploadingThumb && <p className="text-xs font-mono mt-2 text-success">READY: {uploadedThumbName}</p>}
+                {thumbnailUrl && (
+                  <div className="mt-4 w-full aspect-video bg-black rounded overflow-hidden relative group">
+                    <img src={thumbnailUrl} alt="Thumbnail preview" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <p className="text-white text-xs font-mono font-bold">PREVIEW</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Metadata */}
             <div className="space-y-4">
-              <h2 className="font-bold uppercase text-sm tracking-wider">02. Metadata</h2>
+              <h2 className="font-bold uppercase text-sm tracking-wider">03. Metadata</h2>
               <div className="grid gap-4">
                 <div>
                   <label className="text-[10px] font-bold uppercase mb-1 block">Title</label>
@@ -306,11 +355,18 @@ export default function Upload() {
                 <div>
                   <label className="text-[10px] font-bold uppercase mb-1 block">Category</label>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                    {categories.map((cat) => (
-                      <button key={cat.id} type="button" onClick={() => setCategoryId(cat.id)} className={cn("text-[10px] font-bold uppercase p-2 border border-border hover:bg-muted transition-colors text-left", categoryId === cat.id && "bg-foreground text-background border-foreground")}>
-                        {cat.emoji} {cat.name}
-                      </button>
-                    ))}
+                    {categories.length === 0 ? (
+                      <div className="col-span-full text-center py-8 border border-dashed border-border">
+                        <p className="text-xs font-mono text-muted-foreground">NO CATEGORIES FOUND</p>
+                        <p className="text-[10px] text-muted-foreground mt-1">Please contact your administrator to seed the database.</p>
+                      </div>
+                    ) : (
+                      categories.map((cat) => (
+                        <button key={cat.id} type="button" onClick={() => setCategoryId(cat.id)} className={cn("text-[10px] font-bold uppercase p-2 border border-border hover:bg-muted transition-colors text-left", categoryId === cat.id && "bg-foreground text-background border-foreground")}>
+                          {cat.emoji} {cat.name}
+                        </button>
+                      ))
+                    )}
                   </div>
                 </div>
               </div>
@@ -319,7 +375,7 @@ export default function Upload() {
             {/* Quiz */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="font-bold uppercase text-sm tracking-wider">03. Quiz Sequence</h2>
+                <h2 className="font-bold uppercase text-sm tracking-wider">04. Quiz Sequence</h2>
                 <span className="font-mono text-[10px] text-muted-foreground">{quizQuestions.length}/3 QUESTIONS</span>
               </div>
 
