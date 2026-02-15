@@ -64,7 +64,7 @@ export async function uploadImageFile(file: File): Promise<string> {
 /**
  * Get reaction counts and current user's reaction for a video
  */
-export async function getVideoReactionInfo(videoId: string, userId?: string): Promise<{ likes: number; dislikes: number; userReaction?: VideoReaction }>{
+export async function getVideoReactionInfo(videoId: string, userId?: string): Promise<{ likes: number; dislikes: number; userReaction?: VideoReaction }> {
   const { data, error } = await supabase
     .from('video_reactions')
     .select('reaction, user_id')
@@ -133,7 +133,7 @@ export async function deleteVideo(videoId: string, requesterId: string): Promise
       videoUrl = (v as any).video_url || null;
       thumbnailUrl = (v as any).thumbnail_url || null;
     }
-  } catch {}
+  } catch { }
 
   // First try the RPC that bypasses RLS via SECURITY DEFINER
   let rpcSuccess = false;
@@ -300,7 +300,7 @@ export async function getVideoById(id: string): Promise<{
     .from('quiz_questions')
     .select('*')
     .eq('video_id', id)
-    .order('order');
+    .order('order_index');
 
   return {
     video: video as Video,
