@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { MockVideo } from '@/data/mockFeed';
+import { Video } from '@/types';
 import { Play, Heart, MessageCircle, Share2, MoreHorizontal, Volume2, VolumeX } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
 interface ReelCardProps {
-    video: MockVideo;
+    video: Video;
 }
 
 const ReelCard: React.FC<ReelCardProps> = ({ video }) => {
@@ -17,6 +17,7 @@ const ReelCard: React.FC<ReelCardProps> = ({ video }) => {
         <div className="relative w-full max-w-[400px] h-full max-h-[800px] bg-black rounded-2xl overflow-hidden shadow-2xl border border-white/10 flex-shrink-0 group">
 
             {/* Video Placeholder */}
+            {/* Note: In a real app, use a <video> tag here with video.video_url */}
             <div className="absolute inset-0 cursor-pointer" onClick={() => setIsPlaying(!isPlaying)}>
                 <img
                     src={video.thumbnail_url}
@@ -49,7 +50,7 @@ const ReelCard: React.FC<ReelCardProps> = ({ video }) => {
                     <Button size="icon" variant="ghost" className="rounded-full w-12 h-12 bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm">
                         <MessageCircle className="w-6 h-6" />
                     </Button>
-                    <span className="text-xs font-bold text-white shadow-black drop-shadow-md">124</span>
+                    <span className="text-xs font-bold text-white shadow-black drop-shadow-md">-</span>
                 </div>
 
                 <Button size="icon" variant="ghost" className="rounded-full w-12 h-12 bg-white/10 hover:bg-white/20 text-white backdrop-blur-sm">
@@ -69,9 +70,14 @@ const ReelCard: React.FC<ReelCardProps> = ({ video }) => {
             <div className="absolute bottom-0 left-0 right-16 p-6 z-20 pb-8 text-white">
                 <div className="flex items-center gap-3 mb-3">
                     <div className="w-10 h-10 rounded-full border border-white/50 overflow-hidden bg-neutral-800">
-                        <img src={video.creator?.avatar_url} alt={video.creator?.name} className="w-full h-full object-cover" />
+                        {/* Fallback pattern for creator avatar if missing */}
+                        {video.creator?.avatar_url ? (
+                            <img src={video.creator.avatar_url} alt={video.creator?.name} className="w-full h-full object-cover" />
+                        ) : (
+                            <div className="w-full h-full bg-swiss-red flex items-center justify-center font-bold text-xs">{video.creator?.name?.[0] || 'C'}</div>
+                        )}
                     </div>
-                    <span className="font-bold text-sm">{video.creator?.name}</span>
+                    <span className="font-bold text-sm">{video.creator?.name || 'Unknown Creator'}</span>
                     <Button size="sm" variant="secondary" className="h-7 text-xs font-bold px-3 bg-white text-black hover:bg-gray-200">
                         Subscribe
                     </Button>
@@ -84,7 +90,7 @@ const ReelCard: React.FC<ReelCardProps> = ({ video }) => {
 
                 <div className="flex items-center gap-2 text-xs font-mono text-white/80 bg-white/10 w-fit px-2 py-1 rounded backdrop-blur-sm">
                     <Play className="w-3 h-3" />
-                    {video.category?.name}
+                    {video.category?.name || 'General'}
                 </div>
             </div>
 
@@ -94,7 +100,7 @@ const ReelCard: React.FC<ReelCardProps> = ({ video }) => {
                     className="h-full bg-swiss-red"
                     initial={{ width: "0%" }}
                     whileInView={{ width: "100%" }}
-                    transition={{ duration: video.duration_seconds, ease: "linear" }}
+                    transition={{ duration: video.duration_seconds || 60, ease: "linear" }}
                 />
             </div>
 
