@@ -36,6 +36,20 @@ export interface User {
   last_activity_date?: string;
   created_at: string;
   updated_at: string;
+  bio?: string;
+  banner_url?: string;
+  custom_avatar_url?: string;
+}
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  actor_id: string;
+  actor?: User;
+  type: 'follow' | 'like' | 'comment';
+  entity_id?: string;
+  is_read: boolean;
+  created_at: string;
 }
 
 export interface Category {

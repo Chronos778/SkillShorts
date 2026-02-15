@@ -159,6 +159,21 @@ export async function updateUserPoints(
   return data as User;
 }
 
+export async function updateUser(userId: string, updates: Partial<User>): Promise<User | null> {
+    const { data, error } = await supabase
+        .from('users')
+        .update(updates)
+        .eq('id', userId)
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Error updating user:', error);
+        return null;
+    }
+    return data as User;
+}
+
 /**
  * Update user streak
  */

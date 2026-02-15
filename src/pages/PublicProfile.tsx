@@ -6,8 +6,10 @@ import { getVideosByCreator } from '@/services/videos';
 import { getUserByClerkId, getUserById } from '@/services/users';
 import { followUser, unfollowUser, isFollowing, getFollowCounts } from '@/services/social';
 import { Button } from '@/components/ui/button';
-import { Loader2, Play, Users, MapPin, Calendar, Link as LinkIcon, UserPlus, UserCheck } from 'lucide-react';
-import { toast } from 'sonner';
+import { Loader2, Play, UserPlus, UserCheck } from 'lucide-react';
+import { toast } from '@/components/ui/use-toast';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { cn } from '@/lib/utils';
 
 const PublicProfile = () => {
   const { id } = useParams<{ id: string }>();
@@ -51,14 +53,17 @@ const PublicProfile = () => {
   // Follow Mutation
   const followMutation = useMutation({
       mutationFn: async () => {
-          if (!dbCurrentUser) return toast.error("Please sign in to follow");
+          if (!dbCurrentUser) {
+              toast({ title: "Please sign in to follow" });
+              return;
+          }
           if (isFollowed) await unfollowUser(dbCurrentUser.id, id!);
           else await followUser(dbCurrentUser.id, id!);
       },
       onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: ['is-following', dbCurrentUser?.id, id] });
           queryClient.invalidateQueries({ queryKey: ['follow-counts', id] });
-          toast.success(isFollowed ? "Unfollowed" : "Followed");
+          toast({ title: isFollowed ? "Unfollowed" : "Followed" });
       }
   });
 
@@ -70,91 +75,124 @@ const PublicProfile = () => {
       return <div className="flex h-full items-center justify-center">User not found</div>;
   }
 
+  // Derived state
+  const isOwnProfile = currentUser && dbCurrentUser?.id === id;
+  const avatarUrl = profileUser?.custom_avatar_url || profileUser?.avatar_url;
+
   return (
-    <div className="min-h-full bg-background">
-      {/* Header / Banner area */}
-      <div className="h-48 bg-gradient-to-r from-swiss-blue to-purple-600 relative">
-          <div className="absolute -bottom-16 left-8 md:left-12">
-              <div className="w-32 h-32 rounded-full border-4 border-background overflow-hidden bg-white">
-                   <img 
-                      src={profileUser.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${profileUser.name}`} 
-                      className="w-full h-full object-cover" 
-                   />
-              </div>
-          </div>
-      </div>
+    <div className="flex-1 animate-in-fade pb-24 relative">
+         {/* Banner */}
+         <div className="h-48 md:h-64 w-full bg-gradient-to-r from-blue-900 to-purple-900 relative overflow-hidden">
+            {profileUser?.banner_url && (
+                <img 
+                    src={profileUser.banner_url} 
+                    alt="Profile Banner" 
+                    className="w-full h-full object-cover"
+                />
+            )}
+            <div className="absolute inset-0 bg-black/20" />
+         </div>
 
-      {/* Info Section */}
-      <div className="pt-20 px-8 md:px-12 pb-8 border-b-2 border-border">
-          <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-              <div>
-                  <h1 className="text-3xl font-black uppercase tracking-tighter">{profileUser.name}</h1>
-                  <p className="text-muted-foreground font-mono text-sm mt-1">@{profileUser.name.toLowerCase().replace(/\s+/g, '')}</p>
-                  
-                  <div className="flex gap-6 mt-4 text-sm font-bold font-mono">
-                      <div className="flex items-center gap-2">
-                          <Users className="w-4 h-4 text-muted-foreground" />
-                          <span>{followCounts.followers} <span className="text-muted-foreground font-normal">Followers</span></span>
-                      </div>
-                      <div>
-                          <span>{followCounts.following} <span className="text-muted-foreground font-normal">Following</span></span>
-                      </div>
-                      <div>
-                          <span>{videos.length} <span className="text-muted-foreground font-normal">Videos</span></span>
-                      </div>
-                  </div>
-              </div>
+         <div className="max-w-5xl mx-auto px-6">
+            <div className="flex flex-col md:flex-row gap-6 relative -mt-16 md:-mt-20 mb-8 items-start">
+                {/* Avatar */}
+                <Avatar className="w-32 h-32 md:w-40 md:h-40 border-4 border-background shadow-xl">
+                    <AvatarImage src={avatarUrl} className="object-cover" />
+                    <AvatarFallback className="text-4xl font-black bg-swiss-red text-white">
+                        {profileUser?.name?.[0]}
+                    </AvatarFallback>
+                </Avatar>
 
-              {currentUser && dbCurrentUser?.id !== id && (
-                  <Button 
-                      className="w-full md:w-auto font-bold uppercase tracking-wide gap-2"
-                      variant={isFollowed ? "outline" : "default"}
-                      onClick={() => followMutation.mutate()}
-                      disabled={followMutation.isPending}
-                  >
-                      {isFollowed ? <UserCheck className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
-                      {isFollowed ? "Following" : "Follow"}
-                  </Button>
-              )}
-          </div>
-      </div>
+                {/* Profile Info */}
+                <div className="flex-1 mt-2 md:mt-20">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tighter">
+                                {profileUser?.name}
+                            </h1>
+                            <p className="font-mono text-muted-foreground text-sm">@{profileUser?.clerk_user_id?.slice(0, 8) || 'user'}</p>
+                        </div>
+                        
+                        {!isOwnProfile && currentUser && (
+                            <Button 
+                                size="lg" 
+                                className={cn(
+                                    "uppercase font-bold min-w-[140px] shadow-hard-sm transition-all",
+                                    isFollowed 
+                                        ? "bg-background text-foreground hover:bg-muted border-2 border-border" 
+                                        : "bg-foreground text-background hover:bg-foreground/90"
+                                )}
+                                onClick={() => followMutation.mutate()}
+                                disabled={followMutation.isPending}
+                            >
+                                {isFollowed ? (
+                                    <><UserCheck className="mr-2 h-4 w-4" /> FOLLOWING</>
+                                ) : (
+                                    <><UserPlus className="mr-2 h-4 w-4" /> FOLLOW</>
+                                )}
+                            </Button>
+                        )}
+                    </div>
 
-      {/* Videos Grid */}
-      <div className="p-8 md:p-12">
-          <h2 className="text-xl font-bold uppercase tracking-tight mb-6 flex items-center gap-2">
-              <Play className="w-5 h-5 fill-current" /> Uploads
-          </h2>
-          
-          {videos.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-              {videos.map((video) => (
-                <Link
-                  key={video.id}
-                  to={`/video/${video.id}`}
-                  className="group relative aspect-[4/3] bg-black border-2 border-transparent hover:border-foreground transition-all overflow-hidden block"
-                >
-                  <img
-                    src={video.thumbnail_url}
-                    className="w-full h-full object-cover opacity-80 group-hover:opacity-60 group-hover:scale-105 transition-all duration-500"
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <div className="w-12 h-12 bg-white text-black flex items-center justify-center rounded-full">
-                          <Play className="w-5 h-5 ml-1" />
-                      </div>
-                  </div>
-                  <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
-                      <h3 className="text-white font-bold text-sm line-clamp-1">{video.title}</h3>
-                      <p className="text-gray-300 text-xs font-mono">{Intl.NumberFormat('en-US', { notation: "compact" }).format(video.view_count)} views</p>
-                  </div>
-                </Link>
-              ))}
+                    {/* Bio */}
+                    {profileUser?.bio && (
+                        <p className="mt-4 text-sm md:text-base max-w-2xl text-foreground/90 whitespace-pre-wrap">
+                            {profileUser.bio}
+                        </p>
+                    )}
+                    
+                    {/* Stats Row */}
+                    <div className="flex gap-6 mt-6 font-mono text-sm uppercase tracking-wide">
+                          <div>
+                              <span className="font-bold text-foreground">{followCounts.followers}</span> <span className="text-muted-foreground">Followers</span>
+                          </div>
+                          <div>
+                              <span className="font-bold text-foreground">{followCounts.following}</span> <span className="text-muted-foreground">Following</span>
+                          </div>
+                          <div>
+                              <span className="font-bold text-foreground">{videos.length}</span> <span className="text-muted-foreground">Videos</span>
+                          </div>
+                    </div>
+                </div>
             </div>
-          ) : (
-              <div className="text-center py-20 text-muted-foreground font-mono">
-                  No public uploads yet.
-              </div>
-          )}
-      </div>
+
+            {/* Videos Grid */}
+            <div className="mt-12">
+                <h2 className="text-xl font-bold uppercase tracking-tight mb-6 flex items-center gap-2">
+                    <Play className="w-5 h-5 fill-current" /> Uploads
+                </h2>
+                
+                {videos.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {videos.map((video) => (
+                      <Link
+                        key={video.id}
+                        to={`/video/${video.id}`}
+                        className="group relative aspect-[9/16] bg-black border-2 border-transparent hover:border-foreground transition-all overflow-hidden block rounded-lg"
+                      >
+                        <img
+                          src={video.thumbnail_url}
+                          className="w-full h-full object-cover opacity-80 group-hover:opacity-60 group-hover:scale-105 transition-all duration-500"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="w-12 h-12 bg-white text-black flex items-center justify-center rounded-full">
+                                <Play className="w-5 h-5 ml-1" />
+                            </div>
+                        </div>
+                        <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/90 to-transparent">
+                            <h3 className="text-white font-bold text-sm line-clamp-2 leading-tight">{video.title}</h3>
+                            <p className="text-gray-300 text-xs font-mono mt-1">{Intl.NumberFormat('en-US', { notation: "compact" }).format(video.view_count)} views</p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                    <div className="text-center py-20 text-muted-foreground font-mono">
+                        No public uploads yet.
+                    </div>
+                )}
+            </div>
+         </div>
     </div>
   );
 };

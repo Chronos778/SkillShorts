@@ -1,4 +1,4 @@
-import { SignedIn, SignedOut, UserButton, useUser } from "@clerk/clerk-react";
+import { SignedIn, SignedOut, useUser, SignOutButton } from "@clerk/clerk-react";
 import {
     LayoutGrid,
     Search,
@@ -6,10 +6,12 @@ import {
     Compass,
     Shield,
     LogOut,
-    Menu,
     X,
     CreditCard,
-    Zap
+    Zap,
+    Bell,
+    Settings,
+    Menu
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation, Outlet, useNavigate } from "react-router-dom";
@@ -109,22 +111,43 @@ export function SwissShell() {
 
                 <div className="p-4 border-t-2 border-border bg-sidebar-accent/50">
                     <SignedIn>
-                        <div className="flex items-center gap-3 mb-4">
-                            <UserButton
-                                afterSignOutUrl="/"
-                                appearance={{
-                                    elements: {
-                                        avatarBox: "w-8 h-8 rounded-none border border-border"
-                                    }
-                                }}
-                            />
-                            <div className="flex flex-col">
-                                <span className="text-sm font-bold truncate max-w-[120px]">
-                                    {dbUser?.name || 'User'}
-                                </span>
-                                <span className="text-[10px] font-mono text-muted-foreground">
-                                    {dbUser?.points || 0} PTS
-                                </span>
+                        <div className="flex flex-col gap-4">
+                            <Link to={`/profile/${dbUser?.id}`} className="flex items-center gap-3 mb-4 group hover:bg-sidebar-accent/50 p-2 -ml-2 rounded-lg transition-colors">
+                                <div className="relative">
+                                    <img 
+                                        src={dbUser?.custom_avatar_url || clerkUser?.imageUrl} 
+                                        alt={clerkUser?.fullName || "User"}
+                                        className="w-10 h-10 rounded-full object-cover border-2 border-border shadow-sm group-hover:border-primary transition-colors"
+                                    />
+                                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-sidebar" />
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="font-bold text-sm line-clamp-1 group-hover:text-primary transition-colors">
+                                        {dbUser?.name || clerkUser?.fullName}
+                                    </span>
+                                    <span className="text-[10px] text-muted-foreground font-mono group-hover:text-foreground/80 transition-colors">
+                                        LEVEL {dbUser?.level?.toUpperCase() || 'BEGINNER'}
+                                    </span>
+                                </div>
+                            </Link>
+                            
+                            <div className="space-y-1">
+                                <Link to="/notifications" className="flex items-center gap-3 text-muted-foreground hover:text-foreground transition-colors p-2 hover:bg-accent/50 rounded-md">
+                                    <Bell className="w-4 h-4" />
+                                    <span className="font-bold text-sm">NOTIFICATIONS</span>
+                                </Link>
+                                
+                                <Link to="/settings" className="flex items-center gap-3 text-muted-foreground hover:text-foreground transition-colors p-2 hover:bg-accent/50 rounded-md">
+                                    <Settings className="w-4 h-4" />
+                                    <span className="font-bold text-sm">SETTINGS</span>
+                                </Link>
+
+                                <SignOutButton>
+                                    <button className="flex items-center gap-3 text-red-500 hover:text-red-600 transition-colors p-2 hover:bg-red-500/10 rounded-md w-full text-left">
+                                        <LogOut className="w-4 h-4" />
+                                        <span className="font-bold text-sm">LOG OUT</span>
+                                    </button>
+                                </SignOutButton>
                             </div>
                         </div>
                     </SignedIn>

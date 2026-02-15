@@ -17,6 +17,8 @@ import Creator from "./pages/Creator";
 import Admin from "./pages/Admin";
 import SignIn from "./pages/SignIn";
 import PublicProfile from "./pages/PublicProfile";
+import Notifications from "./pages/Notifications";
+import Settings from "./pages/Settings";
 import SignUp from "./pages/SignUp";
 import NotFound from "./pages/NotFound";
 
@@ -74,6 +76,12 @@ const App = () => {
                 } />
                 <Route path="/admin" element={
                   <ProtectedRoute><Admin /></ProtectedRoute>
+                } />
+                <Route path="/notifications" element={
+                  <ProtectedRoute><Notifications /></ProtectedRoute>
+                } />
+                <Route path="/settings" element={
+                  <ProtectedRoute><Settings /></ProtectedRoute>
                 } />
 
                 {/* Swiss Prototypes (Keep for reference) */}
