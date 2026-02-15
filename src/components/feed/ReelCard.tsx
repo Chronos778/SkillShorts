@@ -497,8 +497,8 @@ const ReelCard: React.FC<ReelCardProps> = ({ video }) => {
                     <Link to={`/profile/${video.creator?.id}`}>
                         <div className="w-10 h-10 rounded-full border border-white/50 overflow-hidden bg-neutral-800 cursor-pointer">
                             {/* Fallback pattern for creator avatar if missing */}
-                            {video.creator?.avatar_url ? (
-                                <img src={video.creator.avatar_url} alt={video.creator?.name} className="w-full h-full object-cover" />
+                            {video.creator?.custom_avatar_url || video.creator?.avatar_url ? (
+                                <img src={video.creator?.custom_avatar_url || video.creator?.avatar_url} alt={video.creator?.name} className="w-full h-full object-cover" />
                             ) : (
                                 <div className="w-full h-full bg-swiss-red flex items-center justify-center font-bold text-xs">{video.creator?.name?.[0] || 'C'}</div>
                             )}

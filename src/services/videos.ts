@@ -113,7 +113,7 @@ export async function setUserVideoReaction(videoId: string, userId: string, reac
 export async function getVideoComments(videoId: string): Promise<VideoComment[]> {
   const { data, error } = await supabase
     .from('video_comments')
-    .select('id, video_id, user_id, content, created_at, user:users(id, name, avatar_url)')
+    .select('id, video_id, user_id, content, created_at, user:users(id, name, avatar_url, custom_avatar_url)')
     .eq('video_id', videoId)
     .order('created_at', { ascending: false });
   if (error || !data) return [];
@@ -261,7 +261,7 @@ export async function getApprovedVideos(): Promise<Video[]> {
     .select(`
       *,
       category:categories(*),
-      creator:users(id, name, avatar_url)
+      creator:users(id, name, avatar_url, custom_avatar_url)
     `)
     .eq('status', 'approved')
     .order('created_at', { ascending: false });
@@ -279,7 +279,7 @@ export async function getVideosByCategory(categoryId: string): Promise<Video[]> 
     .select(`
       *,
       category:categories(*),
-      creator:users(id, name, avatar_url)
+      creator:users(id, name, avatar_url, custom_avatar_url)
     `)
     .eq('category_id', categoryId)
     .eq('status', 'approved')
@@ -301,7 +301,7 @@ export async function getVideoById(id: string): Promise<{
     .select(`
       *,
       category:categories(*),
-      creator:users(id, name, avatar_url)
+      creator:users(id, name, avatar_url, custom_avatar_url)
     `)
     .eq('id', id)
     .single();
@@ -445,7 +445,7 @@ export async function searchVideos(query: string): Promise<Video[]> {
     .select(`
       *,
       category:categories(*),
-      creator:users(id, name, avatar_url)
+      creator:users(id, name, avatar_url, custom_avatar_url)
     `)
     .eq('status', 'approved')
     .or(`title.ilike.%${query}%,description.ilike.%${query}%`)
@@ -464,7 +464,7 @@ export async function getVideosByStatus(status: 'pending' | 'approved' | 'reject
     .select(`
       *,
       category:categories(*),
-      creator:users(id, name, avatar_url)
+      creator:users(id, name, avatar_url, custom_avatar_url)
     `)
     .eq('status', status)
     .order('created_at', { ascending: false });
