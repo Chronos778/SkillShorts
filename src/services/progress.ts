@@ -70,7 +70,7 @@ export async function submitQuiz(userId: string, submission: QuizSubmission): Pr
     .from('quiz_questions')
     .select('*')
     .eq('video_id', submission.video_id)
-    .order('order');
+    .order('order_index');
 
   if (questionsError || !questions || questions.length === 0) {
     console.error('Error fetching quiz questions:', questionsError);
