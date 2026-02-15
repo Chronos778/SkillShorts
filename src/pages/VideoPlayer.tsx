@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@clerk/clerk-react";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,8 @@ import EditVideoDialog from "@/components/feed/EditVideoDialog";
 export default function VideoPlayer() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const quizUnlocked = searchParams.get('quiz') === '1';
   const queryClient = useQueryClient();
   const { user: clerkUser, isSignedIn } = useUser();
 
@@ -30,10 +32,10 @@ export default function VideoPlayer() {
   const maxTimeRef = useRef(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [videoProgress, setVideoProgress] = useState(0);
-  const [videoComplete, setVideoComplete] = useState(false);
+  const [videoComplete, setVideoComplete] = useState(quizUnlocked);
 
   // Quiz State
-  const [activeTab, setActiveTab] = useState("info");
+  const [activeTab, setActiveTab] = useState(quizUnlocked ? "quiz" : "info");
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [answers, setAnswers] = useState<boolean[]>();

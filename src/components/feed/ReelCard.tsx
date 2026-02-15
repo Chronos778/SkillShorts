@@ -5,7 +5,7 @@ import {
     Volume2, VolumeX, Send, Copy, Twitter, Facebook, ExternalLink, Edit
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useUser } from '@clerk/clerk-react';
 
@@ -72,9 +72,13 @@ interface ReelCardProps {
 
 const ReelCard: React.FC<ReelCardProps> = ({ video }) => {
     const videoRef = useRef<HTMLVideoElement>(null);
+    const lastTimeRef = useRef(0);
     const [isPlaying, setIsPlaying] = useState(false);
     const [isMuted, setIsMuted] = useState(true); // Start muted for autoplay policies
+    const [hasCompletedOnce, setHasCompletedOnce] = useState(false);
+    const [showQuizPrompt, setShowQuizPrompt] = useState(false);
     const { user } = useUser();
+    const navigate = useNavigate();
     const queryClient = useQueryClient();
     const { toast } = useToast();
     const [commentText, setCommentText] = useState("");
@@ -305,6 +309,16 @@ const ReelCard: React.FC<ReelCardProps> = ({ video }) => {
                         loop
                         muted={isMuted}
                         playsInline
+                        onTimeUpdate={() => {
+                            const v = videoRef.current;
+                            if (!v || hasCompletedOnce) return;
+                            // Detect loop: time jumps from near-end back to near-start
+                            if (lastTimeRef.current > 2 && v.currentTime < 1 && v.duration > 5) {
+                                setHasCompletedOnce(true);
+                                setShowQuizPrompt(true);
+                            }
+                            lastTimeRef.current = v.currentTime;
+                        }}
                     />
                 ) : (
                     <img
@@ -320,6 +334,44 @@ const ReelCard: React.FC<ReelCardProps> = ({ video }) => {
                         <Play className="w-16 h-16 fill-white text-white opacity-80" />
                     </div>
                 )}
+
+                {/* Quiz Prompt Popup */}
+                <AnimatePresence>
+                    {showQuizPrompt && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 40 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 40 }}
+                            className="absolute bottom-24 left-4 right-4 z-30"
+                        >
+                            <div className="bg-black/90 backdrop-blur-md border border-white/20 rounded-xl p-4 shadow-2xl">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <span className="text-xl">🧠</span>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-white text-sm font-bold">Ready to test your knowledge?</p>
+                                        <p className="text-white/60 text-xs">Take the quiz and earn XP!</p>
+                                    </div>
+                                </div>
+                                <div className="flex gap-2 mt-3">
+                                    <button
+                                        onClick={() => setShowQuizPrompt(false)}
+                                        className="flex-1 py-2 text-xs font-bold uppercase text-white/50 hover:text-white/80 transition-colors"
+                                    >
+                                        Later
+                                    </button>
+                                    <button
+                                        onClick={() => navigate(`/video/${video.id}?quiz=1`)}
+                                        className="flex-1 py-2 bg-primary text-primary-foreground text-xs font-bold uppercase rounded-lg hover:bg-primary/90 transition-colors"
+                                    >
+                                        Take Quiz →
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
 
             {/* Mute Toggle */}
