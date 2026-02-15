@@ -77,11 +77,11 @@ export default function Upload() {
         thumbnail_url: thumbnailUrl || undefined,
         duration_seconds: duration,
         category_id: categoryId,
-        quiz_questions: quizQuestions.map(q => ({
+        quiz_questions: quizQuestions.map((q, i) => ({
           question: q.question,
           options: q.options,
           correct_answer: q.correct_answer,
-          order: 0
+          order_index: i
         }))
       }, dbUser.id);
     },
