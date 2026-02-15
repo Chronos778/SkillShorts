@@ -31,7 +31,7 @@ export default function Upload() {
   const [videoUrl, setVideoUrl] = useState("");
   const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [duration, setDuration] = useState(180);
-  const [videoInputMode, setVideoInputMode] = useState<'link' | 'file'>('link');
+  const [videoInputMode, setVideoInputMode] = useState<'link' | 'file'>('file');
   const [uploadingFile, setUploadingFile] = useState(false);
   const [uploadedFileName, setUploadedFileName] = useState("");
   const [uploadError, setUploadError] = useState("");
