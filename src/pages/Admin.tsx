@@ -226,7 +226,7 @@ export default function Admin() {
                   </div>
                   <div>
                     <label className="font-mono text-[10px] uppercase text-muted-foreground block mb-1">Category</label>
-                    <p className="font-medium">{video.category?.name || 'Uncategorized'}</p>
+                    <p className="font-medium">{selectedVideo.category?.name || 'Uncategorized'}</p>
                   </div>
                   <div>
                     <label className="font-mono text-[10px] uppercase text-muted-foreground block mb-1">Creator</label>

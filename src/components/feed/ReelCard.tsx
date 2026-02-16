@@ -135,7 +135,9 @@ const ReelCard: React.FC<ReelCardProps> = ({ video }) => {
         if (u.hostname.includes("youtu.be")) return u.pathname.slice(1);
         return u.searchParams.get("v") || u.pathname.split("/").pop() || null;
       }
-    } catch {}
+    } catch {
+      // invalid url
+    }
     return null;
   };
   const youtubeId = getYouTubeId(video.video_url);

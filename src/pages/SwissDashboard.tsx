@@ -32,8 +32,8 @@ const SwissDashboard = () => {
             if (!clerkUser) return null;
             return syncUserFromClerk(
                 clerkUser.id,
-                clerkUser.primaryEmailAddress?.emailAddress!,
-                clerkUser.fullName!,
+                clerkUser.primaryEmailAddress?.emailAddress || "",
+                clerkUser.fullName || "",
                 clerkUser.imageUrl
             );
         },
@@ -78,7 +78,13 @@ const SwissDashboard = () => {
     const progressPercent = Math.min(100, Math.round((currentPoints / nextThreshold) * 100));
 
     // Stats Display Helper
-    const StatCard = ({ icon: Icon, value, label, loading }: any) => (
+    interface StatCardProps {
+        icon: React.ElementType;
+        value: string | number;
+        label: string;
+        loading?: boolean;
+    }
+    const StatCard = ({ icon: Icon, value, label, loading }: StatCardProps) => (
         <Card className="border-2 shadow-none flex flex-col justify-center items-center p-4 bg-background">
             <Icon className="h-6 w-6 mb-2 text-primary" />
             <div className="text-2xl font-black">{loading ? "-" : value}</div>

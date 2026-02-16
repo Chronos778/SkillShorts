@@ -70,9 +70,9 @@ export async function getVideoReactionInfo(videoId: string, userId?: string): Pr
     .select('reaction, user_id')
     .eq('video_id', videoId);
   if (error) return { likes: 0, dislikes: 0, userReaction: undefined };
-  const likes = (data || []).filter((r: any) => r.reaction === 'like').length;
-  const dislikes = (data || []).filter((r: any) => r.reaction === 'dislike').length;
-  const userReaction = userId ? (data || []).find((r: any) => r.user_id === userId)?.reaction : undefined;
+  const likes = (data || []).filter((r: { reaction: string }) => r.reaction === 'like').length;
+  const dislikes = (data || []).filter((r: { reaction: string }) => r.reaction === 'dislike').length;
+  const userReaction = userId ? (data || []).find((r: { user_id: string; reaction: VideoReaction }) => r.user_id === userId)?.reaction : undefined;
   return { likes, dislikes, userReaction } as { likes: number; dislikes: number; userReaction?: VideoReaction };
 }
 
@@ -117,7 +117,18 @@ export async function getVideoComments(videoId: string): Promise<VideoComment[]>
     .eq('video_id', videoId)
     .order('created_at', { ascending: false });
   if (error || !data) return [];
-  return data as any as VideoComment[];
+  // Helper type for handling potential array response from Supabase join
+  type RawVideoComment = Omit<VideoComment, 'user'> & {
+    user: VideoComment['user'] | VideoComment['user'][];
+  };
+
+  return (data?.map((comment: unknown) => {
+    const c = comment as RawVideoComment;
+    return {
+      ...c,
+      user: Array.isArray(c.user) ? c.user[0] : c.user
+    };
+  }) || []) as VideoComment[];
 }
 
 export async function addVideoComment(videoId: string, userId: string, content: string): Promise<VideoComment | null> {
@@ -142,10 +153,12 @@ export async function deleteVideo(videoId: string, requesterId: string): Promise
       .eq('id', videoId)
       .single();
     if (v) {
-      videoUrl = (v as any).video_url || null;
-      thumbnailUrl = (v as any).thumbnail_url || null;
+      videoUrl = (v as { video_url: string }).video_url || null;
+      thumbnailUrl = (v as { thumbnail_url: string }).thumbnail_url || null;
     }
-  } catch { }
+  } catch {
+    // ignore
+  }
 
   // First try the RPC that bypasses RLS via SECURITY DEFINER
   let rpcSuccess = false;
@@ -526,7 +539,7 @@ export async function updateVideo(videoId: string, updates: Partial<Video>): Pro
  * Deletes existing questions and inserts new ones
  */
 export async function updateQuizQuestions(
-  videoId: string, 
+  videoId: string,
   questions: Array<{
     question: string;
     options: string[];
@@ -536,7 +549,7 @@ export async function updateQuizQuestions(
   // Validate quiz questions
   const { validateQuizQuestions } = await import('./validation');
   const validation = validateQuizQuestions(questions);
-  
+
   if (!validation.isValid) {
     const { formatValidationErrors } = await import('./validation');
     const errorMessage = formatValidationErrors(validation.errors);
